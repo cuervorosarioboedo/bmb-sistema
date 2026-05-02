@@ -351,8 +351,23 @@ async function supaCargarTodo() {
                    co:c.concepto||'', db:String(c.debe||0), hb:String(c.haber||0) };
         });
       } else if (r.clave === 'lor_agenda') {
-        DB.lorAgenda = r.datos;
-      } else if (DB.hasOwnProperty(r.clave)) {
+        // lorAgenda: campos Supabase → campos JS
+        DB.lorAgenda = r.datos.map(function(a) {
+          return {
+            id: a.id, f: a.f||'', hora: a.ho||'', cat: a.cat||'',
+            tit: a.co||'', nota: a.nota||'', he: !!a.he, fReal: a.fReal||''
+          };
+        });
+      } else if (r.clave === 'lorenzo') {
+        // Lorenzo: campos Supabase → campos JS (prest, fFact, monto, concepto, pagado)
+        DB.lorenzo = r.datos.map(function(l) {
+          return {
+            id: l.id, prest: l.tit||'', fFact: l.f||'', fSol: '',
+            fPago: l.he ? (l.f||'') : '', monto: l.descripcion||'',
+            concepto: l.cat||'', pagado: !!l.he
+          };
+        });
+      } else if (r.clave !== 'lorenzo' && DB.hasOwnProperty(r.clave)) {
         DB[r.clave] = r.datos;
       }
     });
@@ -376,6 +391,7 @@ async function supaCargarTodo() {
     _supaConectado = true;
     supaIndicador('ok');
     console.log('[BMB Supabase] Datos cargados OK — procesos:', DB.procesos.length, '| agendas:', DB.agendas.length);
+    iniciarAutoSync();
   } catch(e) {
     console.error('[BMB Supabase] Error al cargar:', e);
     _supaConectado = false;
@@ -466,19 +482,29 @@ async function _ejecutarSync() {
       }; });
       await supaUpsert('intervinientes', ivs);
     }
-    // Lorenzo
+    // Lorenzo (reintegros)
     if (DB.lorenzo.length) {
       var lors = DB.lorenzo.map(function(l) { return {
-        id:l.id, tit:l.prest||null, f:l.fFact||null, hora:null,
-        cat:l.concepto||null, descripcion:l.monto||null, he:!!l.pagado
+        id: l.id,
+        tit: l.prest||null,        // prestador
+        f: l.fFact||null,          // fecha factura
+        hora: null,
+        cat: l.concepto||null,     // concepto
+        descripcion: String(l.monto||''), // monto como texto
+        he: !!l.pagado             // pagado
       }; });
       await supaUpsert('lorenzo', lors);
     }
-    // LorAgenda
+    // LorAgenda (agenda personal)
     if (DB.lorAgenda.length) {
       var lags = DB.lorAgenda.map(function(a) { return {
-        id:a.id, f:a.f||null, ho:a.hora||null, co:a.tit||null,
-        nota:a.nota||null, he:!!a.he, fReal:a.fReal||null
+        id: a.id,
+        f: a.f||null,
+        ho: a.hora||null,
+        co: a.tit||null,           // titulo/descripcion
+        nota: a.nota||null,
+        he: !!a.he,
+        fReal: a.fReal||null
       }; });
       await supaUpsert('lor_agenda', lags);
     }
@@ -563,6 +589,107 @@ async function supaCrearTablaBloqueos() {
     await supaFetch('_bloqueos', 'GET', null, 'limit=1');
   } catch(e) {
     console.log('[BMB] Tabla _bloqueos no disponible — bloqueo deshabilitado');
+  }
+}
+
+// ============================================================
+// SINCRONIZACIÓN AUTOMÁTICA PERIÓDICA — cada 60 segundos
+// Descarga datos frescos desde Supabase sin interrumpir al usuario
+// ============================================================
+var _autoSyncInterval = null;
+var _ultimaActualizacion = Date.now();
+
+function iniciarAutoSync() {
+  if (_autoSyncInterval) clearInterval(_autoSyncInterval);
+  _autoSyncInterval = setInterval(function() {
+    _autoSyncSilencioso();
+  }, 60000); // cada 60 segundos
+  console.log('[BMB AutoSync] Sincronización automática iniciada (cada 60s)');
+}
+
+async function _autoSyncSilencioso() {
+  if (!_supaConectado) return;
+  if (_supaSync) return; // no interrumpir si hay sync en curso
+  try {
+    var tablas = [
+      'procesos','agendas','procuraciones','vencimientos',
+      'intervinientes','cc:cuenta_corriente','finanzas',
+      'lorenzo','lor_agenda'
+    ];
+    var resultados = await Promise.all(tablas.map(function(t) {
+      var partes = t.split(':');
+      var clave = partes[0];
+      var tabla = partes[1] || partes[0];
+      return supaFetch(tabla, 'GET', null, 'limit=5000')
+        .then(function(d) { return { clave: clave, datos: d || [] }; })
+        .catch(function() { return { clave: clave, datos: null }; });
+    }));
+
+    var hubocambios = false;
+
+    resultados.forEach(function(r) {
+      if (!r.datos) return; // error en esa tabla, ignorar
+      if (r.clave === 'cc') {
+        var nuevaCC = r.datos.map(function(c) {
+          return { id:c.id, pid:c.pid||'', f:c.f||'', di:c.divisa||'$',
+                   co:c.concepto||'', db:String(c.debe||0), hb:String(c.haber||0) };
+        });
+        if (JSON.stringify(nuevaCC) !== JSON.stringify(DB.cc)) {
+          DB.cc = nuevaCC; hubocambios = true;
+        }
+      } else if (r.clave === 'lor_agenda') {
+        var nuevaLA = r.datos.map(function(a) {
+          return { id:a.id, f:a.f||'', hora:a.ho||'', cat:a.cat||'',
+                   tit:a.co||'', nota:a.nota||'', he:!!a.he, fReal:a.fReal||'' };
+        });
+        if (JSON.stringify(nuevaLA) !== JSON.stringify(DB.lorAgenda)) {
+          DB.lorAgenda = nuevaLA; huboambios = true;
+        }
+      } else if (r.clave === 'lorenzo') {
+        var nuevaL = r.datos.map(function(l) {
+          return { id:l.id, prest:l.tit||'', fFact:l.f||'', fSol:'',
+                   fPago:l.he?(l.f||''):'', monto:l.descripcion||'',
+                   concepto:l.cat||'', pagado:!!l.he };
+        });
+        if (JSON.stringify(nuevaL) !== JSON.stringify(DB.lorenzo)) {
+          DB.lorenzo = nuevaL; huboambios = true;
+        }
+      } else if (r.clave !== 'lorenzo' && DB.hasOwnProperty(r.clave)) {
+        if (JSON.stringify(r.datos) !== JSON.stringify(DB[r.clave])) {
+          DB[r.clave] = r.datos;
+          huboambios = true;
+        }
+      }
+    });
+
+    if (huboambios) {
+      localStorage.setItem('b2', JSON.stringify(DB));
+      _ultimaActualizacion = Date.now();
+      // Refrescar la vista actual sin perder posición
+      _refrescarVistaActual();
+      supaIndicador('ok', '☁ Nube: actualizado ' + new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}));
+      console.log('[BMB AutoSync] Datos actualizados desde Supabase');
+    }
+  } catch(e) {
+    console.warn('[BMB AutoSync] Error en sincronización silenciosa:', e.message);
+  }
+}
+
+function _refrescarVistaActual() {
+  // Actualiza la vista activa sin navegación brusca
+  try {
+    var fns = {
+      dash: rDash, proc: rProcLista, agenda: rAgenda,
+      procuracion: rProcuracion, venc: rVenc, alertas: rAlertas,
+      finanzas: rFinanzas
+    };
+    if (CS && fns[CS]) {
+      fns[CS]();
+    }
+    mostrarBanner();
+    actualizarBadge();
+  } catch(e) {
+    // Si falla el refresco silencioso, no interrumpir al usuario
   }
 }
 
