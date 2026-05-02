@@ -323,6 +323,7 @@ function supaDelete(tabla, id) {
 
 // ── CARGAR DATOS DESDE SUPABASE AL INICIO ────────────────────
 async function supaCargarTodo() {
+  _cargando = true;
   supaIndicador('load');
   try {
     var tablas = [
@@ -334,12 +335,12 @@ async function supaCargarTodo() {
       var partes = t.split(':');
       var clave = partes[0];
       var tabla = partes[1] || partes[0];
-      return supaFetch(tabla, 'GET', null, 'limit=5000')
+      return supaFetch(tabla, 'GET', null, 'select=*&limit=5000')
         .then(function(d) { return { clave: clave, datos: d || [] }; })
         .catch(function() { return { clave: clave, datos: [] }; });
     }));
 
-    var juzgadosR = await supaFetch('juzgados', 'GET', null, 'limit=500')
+    var juzgadosR = await supaFetch('juzgados', 'GET', null, 'select=*&limit=500')
       .catch(function() { return []; });
 
     // Mapear cuenta_corriente → cc (campo names del HTML)
@@ -367,6 +368,24 @@ async function supaCargarTodo() {
             concepto: l.cat||'', pagado: !!l.he
           };
         });
+      } else if (r.clave === 'procesos') {
+        DB.procesos = r.datos.map(function(p) { return {
+          id:p.id, ca:p.ca||'', actor:p.actor||null, demandado:p.demandado||null,
+          ti:p.ti||null, pr:p.pr||'media', re:p.re||null, par:p.par||null,
+          ex:p.ex||null, ju:p.ju||null, ins:p.ins||null, mo:p.mo||null,
+          nc:p.nc||null, fi:p.fi||null, um:p.um||null, fa:p.fa||null,
+          ob:p.ob||null, conf:!!p.conf, ar:!!p.ar, pin:!!p.pin, foco:!!p.foco,
+          focoMotivo:p.foco_motivo||null,
+          proximaTarea:p.proxima_tarea||null,
+          fechaTarea:p.fecha_tarea||null,
+          canon:p.canon||null,
+          canonFecha:p.canon_fecha||null,
+          canonPer:p.canon_per||null,
+          contVenc:p.cont_vens||null,
+          locatario:p.locatario||null,
+          servicios:p.servicio||null,
+          deudas:p.deudas||null
+        }; });
       } else if (r.clave !== 'lorenzo' && DB.hasOwnProperty(r.clave)) {
         DB[r.clave] = r.datos;
       }
@@ -389,11 +408,13 @@ async function supaCargarTodo() {
     // Guardar en localStorage como caché
     localStorage.setItem('b2', JSON.stringify(DB));
     _supaConectado = true;
+    _cargando = false;
     supaIndicador('ok');
     console.log('[BMB Supabase] Datos cargados OK — procesos:', DB.procesos.length, '| agendas:', DB.agendas.length);
     iniciarAutoSync();
   } catch(e) {
     console.error('[BMB Supabase] Error al cargar:', e);
+    _cargando = false;
     _supaConectado = false;
     supaIndicador('err');
   }
@@ -402,7 +423,9 @@ async function supaCargarTodo() {
 // ── SINCRONIZACIÓN ASYNC EN SEGUNDO PLANO ────────────────────
 // Se llama cada vez que sv() guarda. Detecta qué cambió y sincroniza solo eso.
 var _pendienteSync = null;
+var _cargando = false;
 function supaSync() {
+  if (_cargando) return; // no sincronizar durante la carga inicial
   if (_pendienteSync) clearTimeout(_pendienteSync);
   _pendienteSync = setTimeout(function() { _ejecutarSync(); }, 800);
 }
@@ -420,11 +443,16 @@ async function _ejecutarSync() {
         ex:p.ex||null, ju:p.ju||null, ins:p.ins||null, mo:p.mo||null,
         nc:p.nc||null, fi:p.fi||null, um:p.um||null, fa:p.fa||null,
         ob:p.ob||null, conf:!!p.conf, ar:!!p.ar, pin:!!p.pin, foco:!!p.foco,
-        foco_motivo:p.focoMotivo||null, proximaTarea:p.proximaTarea||null,
-        fechaTarea:p.fechaTarea||null, canon:p.canon||null,
-        canonFecha:p.canonFecha||null, canonPer:p.canonPer||null,
-        contVenc:p.contVenc||null, locatario:p.locatario||null,
-        servicios:p.servicios||null, deudas:p.deudas||null
+        foco_motivo:p.focoMotivo||null,
+        proxima_tarea:p.proximaTarea||null,
+        fecha_tarea:p.fechaTarea||null,
+        canon:p.canon||null,
+        canon_fecha:p.canonFecha||null,
+        canon_per:p.canonPer||null,
+        cont_vens:p.contVenc||null,
+        locatario:p.locatario||null,
+        servicio:p.servicios||null,
+        deudas:p.deudas||null
       }; });
       await supaUpsert('procesos', procs);
     }
@@ -620,7 +648,7 @@ async function _autoSyncSilencioso() {
       var partes = t.split(':');
       var clave = partes[0];
       var tabla = partes[1] || partes[0];
-      return supaFetch(tabla, 'GET', null, 'limit=5000')
+      return supaFetch(tabla, 'GET', null, 'select=*&limit=5000')
         .then(function(d) { return { clave: clave, datos: d || [] }; })
         .catch(function() { return { clave: clave, datos: null }; });
     }));
@@ -654,10 +682,31 @@ async function _autoSyncSilencioso() {
         if (JSON.stringify(nuevaL) !== JSON.stringify(DB.lorenzo)) {
           DB.lorenzo = nuevaL; huboambios = true;
         }
+      } else if (r.clave === 'procesos') {
+        var mapped = r.datos.map(function(p) { return {
+          id:p.id, ca:p.ca||'', actor:p.actor||null, demandado:p.demandado||null,
+          ti:p.ti||null, pr:p.pr||'media', re:p.re||null, par:p.par||null,
+          ex:p.ex||null, ju:p.ju||null, ins:p.ins||null, mo:p.mo||null,
+          nc:p.nc||null, fi:p.fi||null, um:p.um||null, fa:p.fa||null,
+          ob:p.ob||null, conf:!!p.conf, ar:!!p.ar, pin:!!p.pin, foco:!!p.foco,
+          focoMotivo:p.foco_motivo||null,
+          proximaTarea:p.proxima_tarea||null,
+          fechaTarea:p.fecha_tarea||null,
+          canon:p.canon||null,
+          canonFecha:p.canon_fecha||null,
+          canonPer:p.canon_per||null,
+          contVenc:p.cont_vens||null,
+          locatario:p.locatario||null,
+          servicios:p.servicio||null,
+          deudas:p.deudas||null
+        }; });
+        if (JSON.stringify(mapped) !== JSON.stringify(DB.procesos)) {
+          DB.procesos = mapped; hubocambios = true;
+        }
       } else if (r.clave !== 'lorenzo' && DB.hasOwnProperty(r.clave)) {
         if (JSON.stringify(r.datos) !== JSON.stringify(DB[r.clave])) {
           DB[r.clave] = r.datos;
-          huboambios = true;
+          hubocambios = true;
         }
       }
     });
