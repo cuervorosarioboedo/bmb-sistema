@@ -256,11 +256,17 @@ textarea.fc{min-height:80px;resize:vertical}
 <script>
 
 // ============================================================
-// BMB 2.0 v2.6 — Capa Supabase (mapeo verificado 05/05/2026)
+// BMB 2.0 v2.6 — Capa Supabase (mapeo definitivo verificado)
+// Columnas reales confirmadas 06/05/2026
 // ============================================================
 var SUPA_URL = 'https://ojcdfzphwloblhfdivdd.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qY2RmenBod2xvYmxoZmRpdmRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNTg0NDQsImV4cCI6MjA5MjYzNDQ0NH0.56KRksw4n0rDDstBiXtFGH5L6dP7YKWGZ8BGz0h2o8M';
-var SUPA_H = {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Prefer':'resolution=merge-duplicates'};
+var SUPA_H = {
+  'Content-Type':'application/json',
+  'apikey':SUPA_KEY,
+  'Authorization':'Bearer '+SUPA_KEY,
+  'Prefer':'resolution=merge-duplicates'
+};
 var _supaOK = false;
 var _cargando = false;
 var _syncTimer = null;
@@ -276,11 +282,13 @@ function supaInd(st,msg){
     load:{bg:'#EFF6FF',co:'#1D4ED8',tx:'☁ Cargando...'}
   };
   var x=cfg[st]||cfg.ok;
-  el.style.background=x.bg;el.style.color=x.co;el.textContent=msg||x.tx;
+  el.style.background=x.bg;
+  el.style.color=x.co;
+  el.textContent=msg||x.tx;
 }
 
-function supaGet(tabla,filtro){
-  return fetch(SUPA_URL+'/rest/v1/'+tabla+'?select=*'+(filtro?'&'+filtro:'')+'&limit=5000',
+function supaGet(tabla){
+  return fetch(SUPA_URL+'/rest/v1/'+tabla+'?select=*&limit=5000',
     {method:'GET',headers:SUPA_H})
     .then(function(r){
       if(!r.ok)return r.text().then(function(t){throw new Error(tabla+': '+t);});
@@ -291,7 +299,8 @@ function supaGet(tabla,filtro){
 function supaUps(tabla,filas){
   if(!filas||!filas.length)return Promise.resolve();
   return fetch(SUPA_URL+'/rest/v1/'+tabla,
-    {method:'POST',headers:SUPA_H,body:JSON.stringify(Array.isArray(filas)?filas:[filas])})
+    {method:'POST',headers:SUPA_H,
+     body:JSON.stringify(Array.isArray(filas)?filas:[filas])})
     .then(function(r){
       if(!r.ok)return r.text().then(function(t){throw new Error(tabla+': '+t);});
     });
@@ -305,7 +314,7 @@ function supaDel(tabla,id){
     });
 }
 
-// Mapeo JS (camelCase) → Supabase (columnas reales verificadas)
+// ── MAPEO PROCESOS (JS camelCase → Supabase columnas reales) ─
 function procToSupa(p){return{
   id:p.id, ca:p.ca||'', actor:p.actor||null, demandado:p.demandado||null,
   ti:p.ti||null, pr:p.pr||'media', re:p.re||null, par:p.par||null,
@@ -324,7 +333,7 @@ function procToSupa(p){return{
   deudas:p.deudas||null
 };}
 
-// Mapeo Supabase (columnas reales) → JS (camelCase)
+// ── MAPEO PROCESOS (Supabase columnas reales → JS camelCase) ─
 function supaToProc(p){return{
   id:p.id, ca:p.ca||'', actor:p.actor||null, demandado:p.demandado||null,
   ti:p.ti||null, pr:p.pr||'media', re:p.re||null, par:p.par||null,
@@ -341,6 +350,78 @@ function supaToProc(p){return{
   locatario:p.locatario||null,
   servicios:p.servicios||null,
   deudas:p.deudas||null
+};}
+
+// ── MAPEO AGENDAS (JS → Supabase) ────────────────────────────
+// Columnas reales: co, created_at, f, freal, he, ho, id, nota, pid, resp
+function agToSupa(a){return{
+  id:a.id,
+  pid:a.pid||null,
+  resp:a.resp||null,
+  f:a.f||null,
+  ho:a.ho||null,
+  co:a.co||null,
+  nota:a.nota||null,
+  he:!!a.he,
+  freal:a.fReal||null
+};}
+
+// ── MAPEO AGENDAS (Supabase → JS) ────────────────────────────
+function supaToAg(a){return{
+  id:a.id,
+  pid:a.pid||null,
+  resp:a.resp||null,
+  f:a.f||null,
+  ho:a.ho||null,
+  co:a.co||null,
+  nota:a.nota||null,
+  he:!!a.he,
+  fReal:a.freal||null
+};}
+
+// ── MAPEO PROCURACIONES (JS → Supabase) ──────────────────────
+// Columnas reales: co, created_at, f, flim, freal, ho, id, lugar, pid, re2, realizada, resultado
+function procurToSupa(x){return{
+  id:x.id,
+  pid:x.pid||null,
+  f:x.f||null,
+  ho:x.ho||null,
+  lugar:x.lugar||null,
+  co:x.co||null,
+  re2:x.re2||null,
+  flim:x.fLim||null,
+  realizada:!!x.realizada,
+  freal:x.fReal||null,
+  resultado:x.resultado||null
+};}
+
+// ── MAPEO PROCURACIONES (Supabase → JS) ──────────────────────
+function supaToProcur(x){return{
+  id:x.id,
+  pid:x.pid||null,
+  f:x.f||null,
+  ho:x.ho||null,
+  lugar:x.lugar||null,
+  co:x.co||null,
+  re2:x.re2||null,
+  fLim:x.flim||null,
+  realizada:!!x.realizada,
+  fReal:x.freal||null,
+  resultado:x.resultado||null
+};}
+
+// ── MAPEO VENCIMIENTOS (JS → Supabase) ───────────────────────
+// Columnas reales: ac, ca2, conf2, created_at, f, ho, id, pid, r, re2
+function vencToSupa(v){return{
+  id:v.id,
+  pid:v.pid||null,
+  f:v.f||null,
+  ho:v.ho||null,
+  ac:v.ac||null,
+  re2:v.re2||null,
+  ca2:!!v.ca2,
+  r:!!v.r,
+  conf2:!!v.conf2
 };}
 
 async function supaCargar(){
@@ -360,39 +441,36 @@ async function supaCargar(){
       supaGet('lorenzo').catch(function(){return[];}),
       supaGet('lor_agenda').catch(function(){return[];})
     ]);
-    var procs=res[0],ags=res[1],proc2=res[2],vencs=res[3],
-        ivs=res[4],cc=res[5],fins=res[6],usrs=res[7],
-        juzgs=res[8],lor=res[9],lorAg=res[10];
 
-    if(procs.length) DB.procesos=procs.map(supaToProc);
-    if(ags.length) DB.agendas=ags;
-    if(proc2.length) DB.procuraciones=proc2;
-    if(vencs.length) DB.vencimientos=vencs;
-    if(ivs.length) DB.intervinientes=ivs;
-    if(cc.length) DB.cc=cc.map(function(x){return{
+    if(res[0].length) DB.procesos=res[0].map(supaToProc);
+    if(res[1].length) DB.agendas=res[1].map(supaToAg);
+    if(res[2].length) DB.procuraciones=res[2].map(supaToProcur);
+    if(res[3].length) DB.vencimientos=res[3];
+    if(res[4].length) DB.intervinientes=res[4];
+    if(res[5].length) DB.cc=res[5].map(function(x){return{
       id:x.id,pid:x.pid||'',f:x.f||'',di:x.divisa||'$',
       co:x.concepto||'',db:String(x.debe||0),hb:String(x.haber||0)};});
-    if(fins.length) DB.finanzas=fins;
-    if(usrs.length){
-      DB.usuarios=usrs;
-      usrs.forEach(function(u){
+    if(res[6].length) DB.finanzas=res[6];
+    if(res[7].length){
+      DB.usuarios=res[7];
+      res[7].forEach(function(u){
         if(u.rol!=='referencia'&&RESPONSABLES.indexOf(u.nombre)<0)
           RESPONSABLES.push(u.nombre);
       });
     }
-    if(juzgs.length){
-      juzgs.forEach(function(j){
+    if(res[8].length){
+      res[8].forEach(function(j){
         if(j.nombre&&DB.juzgados.indexOf(j.nombre)<0)
           DB.juzgados.push(j.nombre);
       });
     }
-    if(lor.length) DB.lorenzo=lor.map(function(l){return{
+    if(res[9].length) DB.lorenzo=res[9].map(function(l){return{
       id:l.id,prest:l.tit||'',fFact:l.f||'',fSol:'',
       fPago:l.he?(l.f||''):'',monto:l.descripcion||'',
       concepto:l.cat||'',pagado:!!l.he};});
-    if(lorAg.length) DB.lorAgenda=lorAg.map(function(a){return{
+    if(res[10].length) DB.lorAgenda=res[10].map(function(a){return{
       id:a.id,f:a.f||'',hora:a.ho||'',cat:a.cat||'',
-      tit:a.co||'',nota:a.nota||'',he:!!a.he,fReal:a.fReal||''};});
+      tit:a.co||'',nota:a.nota||'',he:!!a.he,fReal:a.freal||''};});
 
     localStorage.setItem('b2',JSON.stringify(DB));
     _supaOK=true;
@@ -418,22 +496,28 @@ async function _doSync(){
   supaInd('sync');
   try{
     await supaUps('procesos',DB.procesos.map(procToSupa));
-    await supaUps('agendas',DB.agendas);
-    await supaUps('procuraciones',DB.procuraciones);
-    await supaUps('vencimientos',DB.vencimientos);
-    if(DB.intervinientes.length) await supaUps('intervinientes',DB.intervinientes);
-    if(DB.cc.length) await supaUps('cuenta_corriente',DB.cc.map(function(x){return{
-      id:x.id,pid:x.pid||null,f:x.f||null,divisa:x.di||'$',
-      concepto:x.co||null,debe:parseFloat(x.db)||0,haber:parseFloat(x.hb)||0};}));
-    if(DB.finanzas.length) await supaUps('finanzas',DB.finanzas);
-    if(DB.usuarios.length) await supaUps('usuarios',DB.usuarios.map(function(u){return{
-      id:u.id,nombre:u.nombre,pass:u.pass,rol:u.rol||'abogado',activo:true};}));
-    if(DB.lorenzo.length) await supaUps('lorenzo',DB.lorenzo.map(function(l){return{
-      id:l.id,tit:l.prest||null,f:l.fFact||null,hora:null,
-      cat:l.concepto||null,descripcion:String(l.monto||''),he:!!l.pagado};}));
-    if(DB.lorAgenda.length) await supaUps('lor_agenda',DB.lorAgenda.map(function(a){return{
-      id:a.id,f:a.f||null,ho:a.hora||null,co:a.tit||null,
-      nota:a.nota||null,he:!!a.he,fReal:a.fReal||null};}));
+    await supaUps('agendas',DB.agendas.map(agToSupa));
+    await supaUps('procuraciones',DB.procuraciones.map(procurToSupa));
+    await supaUps('vencimientos',DB.vencimientos.map(vencToSupa));
+    if(DB.intervinientes.length)
+      await supaUps('intervinientes',DB.intervinientes);
+    if(DB.cc.length)
+      await supaUps('cuenta_corriente',DB.cc.map(function(x){return{
+        id:x.id,pid:x.pid||null,f:x.f||null,divisa:x.di||'$',
+        concepto:x.co||null,debe:parseFloat(x.db)||0,haber:parseFloat(x.hb)||0};}));
+    if(DB.finanzas.length)
+      await supaUps('finanzas',DB.finanzas);
+    if(DB.usuarios.length)
+      await supaUps('usuarios',DB.usuarios.map(function(u){return{
+        id:u.id,nombre:u.nombre,pass:u.pass,rol:u.rol||'abogado',activo:true};}));
+    if(DB.lorenzo.length)
+      await supaUps('lorenzo',DB.lorenzo.map(function(l){return{
+        id:l.id,tit:l.prest||null,f:l.fFact||null,hora:null,
+        cat:l.concepto||null,descripcion:String(l.monto||''),he:!!l.pagado};}));
+    if(DB.lorAgenda.length)
+      await supaUps('lor_agenda',DB.lorAgenda.map(function(a){return{
+        id:a.id,f:a.f||null,ho:a.hora||null,co:a.tit||null,
+        nota:a.nota||null,he:!!a.he,freal:a.fReal||null};}));
     supaInd('ok','☁ Sincronizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
   }catch(e){
     console.error('[BMB] Error sync:',e);
@@ -442,11 +526,13 @@ async function _doSync(){
 }
 
 function supaElim(tabla,id){
-  var t2={agendas:'agendas',procuraciones:'procuraciones',
+  var t2={
+    agendas:'agendas',procuraciones:'procuraciones',
     vencimientos:'vencimientos',intervinientes:'intervinientes',
     cc:'cuenta_corriente',finanzas:'finanzas',
     lorAgenda:'lor_agenda',lorenzo:'lorenzo',
-    procesos:'procesos',usuarios:'usuarios'}[tabla]||tabla;
+    procesos:'procesos',usuarios:'usuarios'
+  }[tabla]||tabla;
   if(id&&_supaOK) supaDel(t2,id).catch(function(e){
     console.warn('[BMB] Error eliminando',t2,e.message);});
 }
@@ -456,10 +542,12 @@ function iniciarAutoSync(){
   _autoSyncInt=setInterval(function(){
     if(!_supaOK||_cargando)return;
     supaGet('agendas').then(function(d){
-      if(d&&d.length&&JSON.stringify(d)!==JSON.stringify(DB.agendas)){
-        DB.agendas=d;
+      if(!d||!d.length)return;
+      var mapped=d.map(supaToAg);
+      if(JSON.stringify(mapped)!==JSON.stringify(DB.agendas)){
+        DB.agendas=mapped;
         supaGet('procesos').then(function(p){
-          if(p&&p.length) DB.procesos=p.map(supaToProc);
+          if(p&&p.length)DB.procesos=p.map(supaToProc);
           localStorage.setItem('b2',JSON.stringify(DB));
           try{
             if(CS==='dash')rDash();
