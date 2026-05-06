@@ -522,29 +522,56 @@ function iniciarAutoSync(){
   if(_autoSyncInt)clearInterval(_autoSyncInt);
   _autoSyncInt=setInterval(function(){
     if(!_supaOK||_cargando)return;
-    supaGet('agendas').then(function(d){
-      if(!d||!d.length)return;
-      var mapped=d.map(supaToAg);
-      // Solo actualizar si hay MÁS registros en Supabase que localmente
-      if(mapped.length > DB.agendas.length){
-        DB.agendas=mapped;
-        var ids={};mapped.forEach(function(a){if(a.id)ids[a.id]=true;});
-        _idsSupa['agendas']=ids;
-        supaGet('procesos').then(function(p){
-          if(p&&p.length){
-            DB.procesos=p.map(supaToProc);
-            var pids={};p.forEach(function(x){if(x.id)pids[x.id]=true;});
-            _idsSupa['procesos']=pids;
-          }
-          localStorage.setItem('b2',JSON.stringify(DB));
-          try{
-            if(CS==='dash')rDash();
-            else if(CS==='proc')rProcLista();
-            else if(CS==='agenda')renderAgLista();
-            mostrarBanner();actualizarBadge();
-          }catch(ex){}
-          supaInd('ok','☁ Actualizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
-        }).catch(function(){});
+    // Comparar agendas y procesos por contenido, no solo por conteo
+    Promise.all([
+      supaGet('agendas').catch(function(){return null;}),
+      supaGet('procesos').catch(function(){return null;})
+    ]).then(function(res){
+      var dAgs=res[0], dProcs=res[1];
+      var cambio=false;
+
+      if(dAgs&&dAgs.length){
+        var mappedAgs=dAgs.map(supaToAg);
+        // Detectar cambios: diferente conteo O diferente contenido
+        var localStr=JSON.stringify(DB.agendas.map(function(a){
+          return {id:a.id,co:a.co,f:a.f,he:a.he,fReal:a.fReal};
+        }).sort(function(a,b){return a.id>b.id?1:-1;}));
+        var supaStr=JSON.stringify(mappedAgs.map(function(a){
+          return {id:a.id,co:a.co,f:a.f,he:a.he,fReal:a.fReal};
+        }).sort(function(a,b){return a.id>b.id?1:-1;}));
+        if(localStr!==supaStr){
+          DB.agendas=mappedAgs;
+          var ids={};mappedAgs.forEach(function(a){if(a.id)ids[a.id]=true;});
+          _idsSupa['agendas']=ids;
+          cambio=true;
+        }
+      }
+
+      if(dProcs&&dProcs.length){
+        var mappedProcs=dProcs.map(supaToProc);
+        var lStr=JSON.stringify(DB.procesos.map(function(p){
+          return {id:p.id,ca:p.ca,proximaTarea:p.proximaTarea,fechaTarea:p.fechaTarea};
+        }).sort(function(a,b){return a.id>b.id?1:-1;}));
+        var sStr=JSON.stringify(mappedProcs.map(function(p){
+          return {id:p.id,ca:p.ca,proximaTarea:p.proximaTarea,fechaTarea:p.fechaTarea};
+        }).sort(function(a,b){return a.id>b.id?1:-1;}));
+        if(lStr!==sStr){
+          DB.procesos=mappedProcs;
+          var pids={};mappedProcs.forEach(function(x){if(x.id)pids[x.id]=true;});
+          _idsSupa['procesos']=pids;
+          cambio=true;
+        }
+      }
+
+      if(cambio){
+        localStorage.setItem('b2',JSON.stringify(DB));
+        try{
+          if(CS==='dash')rDash();
+          else if(CS==='proc')rProcLista();
+          else if(CS==='agenda')renderAgLista();
+          mostrarBanner();actualizarBadge();
+        }catch(ex){}
+        supaInd('ok','☁ Actualizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
       }
     }).catch(function(){});
   },60000);
