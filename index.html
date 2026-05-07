@@ -462,6 +462,7 @@ async function supaCargar(){
     _cargando=false;
     supaInd('ok');
     console.log('[BMB] Datos cargados — procesos:'+DB.procesos.length+' agendas:'+DB.agendas.length);
+    await supaCargarPrefs();
     iniciarAutoSync();
   }catch(e){
     console.error('[BMB] Error carga:',e);
@@ -575,6 +576,40 @@ function iniciarAutoSync(){
       }).catch(function(){});
     }).catch(function(){});
   },60000);
+}
+
+// ── PREFERENCIAS DE USUARIO (pinOrder, alOrder) ──────────────
+// Se guardan en Supabase tabla preferencias: {uid, pinorder, alorder}
+async function supaGuardarPrefs(){
+  if(!_supaOK||!CU)return;
+  try{
+    var payload={
+      uid: CU.id,
+      pinorder: JSON.stringify(DB.pinOrder||[]),
+      alorder: JSON.stringify(DB.alOrder||[])
+    };
+    await fetch(SUPA_URL+'/rest/v1/preferencias',{
+      method:'POST',
+      headers:SUPA_H_UPS,
+      body:JSON.stringify(payload)
+    });
+  }catch(e){console.warn('[BMB] Error guardando preferencias:',e.message);}
+}
+
+async function supaCargarPrefs(){
+  if(!_supaOK||!CU)return;
+  try{
+    var r=await fetch(SUPA_URL+'/rest/v1/preferencias?uid=eq.'+encodeURIComponent(CU.id)+'&select=*',
+      {method:'GET',headers:SUPA_H_GET});
+    if(!r.ok)return;
+    var d=await r.json();
+    if(d&&d.length){
+      var prefs=d[0];
+      if(prefs.pinorder){try{DB.pinOrder=JSON.parse(prefs.pinorder);}catch(e){}}
+      if(prefs.alorder){try{DB.alOrder=JSON.parse(prefs.alorder);}catch(e){}}
+      localStorage.setItem('b2',JSON.stringify(DB));
+    }
+  }catch(e){console.warn('[BMB] Error cargando preferencias:',e.message);}
 }
 
 var UMBRALES={alta:{critico:10,alerta:5},media:{critico:20,alerta:12},baja:{critico:30,alerta:20}};
@@ -753,7 +788,7 @@ function guardarPinOrder(){
   DB.pinOrder=Array.from(lista.querySelectorAll('.pin-drag')).map(function(el){return el.getAttribute('data-pid');});
   sv();
 }
-function pinMover(id,dir){var todos2=procVisibles().filter(function(p){return p.pin;});var ordenados=todos2.slice().sort(function(a,b){var oa=DB.pinOrder.indexOf(a.id),ob=DB.pinOrder.indexOf(b.id);if(oa<0)oa=999;if(ob<0)ob=999;return oa-ob;});var ids=ordenados.map(function(p){return p.id;});var idx=ids.indexOf(id);if(idx<0)return;var nuevo=idx+dir;if(nuevo<0||nuevo>=ids.length)return;var tmp=ids[idx];ids[idx]=ids[nuevo];ids[nuevo]=tmp;DB.pinOrder=ids;sv();rDash();}
+function pinMover(id,dir){var todos2=procVisibles().filter(function(p){return p.pin;});var ordenados=todos2.slice().sort(function(a,b){var oa=DB.pinOrder.indexOf(a.id),ob=DB.pinOrder.indexOf(b.id);if(oa<0)oa=999;if(ob<0)ob=999;return oa-ob;});var ids=ordenados.map(function(p){return p.id;});var idx=ids.indexOf(id);if(idx<0)return;var nuevo=idx+dir;if(nuevo<0||nuevo>=ids.length)return;var tmp=ids[idx];ids[idx]=ids[nuevo];ids[nuevo]=tmp;DB.pinOrder=ids;sv();supaGuardarPrefs();rDash();}
 function dashRowInner(p){
   var iv=p._i||calcIUO(p);var u=UMBRALES[p.pr||'media']||UMBRALES.media;var dias=dD(p.um||p.fi);
   var pct=iv==='P'?100:iv==='S'?50:Math.max(0,Math.round((1-dias/u.critico)*100));
@@ -788,7 +823,7 @@ function dashRow(p){
   return'<div class="cr2"><div class="ck'+(p.pin?' dn':'')+'" onclick="togglePin(\''+p.id+'\')">'+(p.pin?'📌':'')+'</div><div class="ci"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="cn" onclick="aP(\''+p.id+'\')">'+p.ca+'</div>'+(!p.pin&&!p.foco?'<button class="btn bf bsm" onclick="oFoco(\''+p.id+'\')" style="padding:2px 8px;font-size:11px">🔥</button>':'')+'</div><div class="cm">'+(p.re||'-')+' · '+dBadge+(pt&&!tareaStr?'<div style="font-size:11px;color:var(--green);margin-top:2px">↳ '+pt.substr(0,55)+'</div>':!pt?'<div style="font-size:11px;color:var(--red);margin-top:2px">⚠ Sin proxima tarea</div>':'')+tareaStr+btnTrab+'</div><div class="cbar"><div class="cfil" style="width:'+pct+'%;background:'+col+'"></div></div></div><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span></div>';
 }
 function marcarTrabajada(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;if(!confirm('Marcar como trabajada hoy? Se limpiara la tarea programada.'))return;p.um=hoy();p.proximaTarea='';p.fechaTarea='';sv();mostrarBanner();actualizarBadge();rDash();}
-function togglePin(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pin=!p.pin;sv();if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();mostrarBanner();actualizarBadge();}
+function togglePin(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pin=!p.pin;if(_supaOK){supaUps('procesos',[procToSupa(p)]).catch(function(e){console.warn('[BMB] Error pin:',e.message);});}sv();if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();mostrarBanner();actualizarBadge();}
 function oFoco(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;document.getElementById('mFI').innerHTML='<div class="mh"><div class="mt2">🔥 Activar Modo Foco</div><button class="bi" onclick="cM(\'mF\')">✕</button></div><div style="background:var(--foco-bg);border:1px solid var(--foco-bd);border-radius:8px;padding:12px;margin-bottom:1rem"><div style="font-weight:600;color:var(--foco-tx)">'+p.ca+'</div></div><div class="fg"><label class="fl req">Motivo del foco</label><textarea class="fc" id="foco-mot" rows="3"></textarea></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mF\')">Cancelar</button><button class="btn bf" onclick="activarFoco(\''+id+'\')">🔥 Activar Foco</button></div>';document.getElementById('mF').classList.add('open');}
 function activarFoco(id){var mot=document.getElementById('foco-mot').value.trim();if(!mot){alert('El motivo es obligatorio');return}var p=DB.procesos.find(function(x){return x.id===id;});if(p){p.foco=true;p.focoMotivo=mot;p.focoFecha=hoy();sv();}cM('mF');if(CS==='dash')rDash();else rProcLista();mostrarBanner();actualizarBadge();}
 function desactivarFoco(id){if(!confirm('Desactivar el Modo Foco?'))return;var p=DB.procesos.find(function(x){return x.id===id;});if(p){p.foco=false;delete p.focoMotivo;delete p.focoFecha;sv();}if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();mostrarBanner();actualizarBadge();}
@@ -931,7 +966,7 @@ function vProc(p){
   return h;
 }
 function guardarYCerrar(id){var p=DB.procesos.find(function(x){return x.id===id;});if(p){p.um=hoy();sv();}cM('mP');mostrarBanner();actualizarBadge();if(CS==='proc')rProcLista();else if(CS==='dash')rDash();else if(CS==='alertas')rAlertas();}
-function togglePinProc(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pin=!p.pin;sv();mostrarBanner();actualizarBadge();refrPT(id,'ex');}
+function togglePinProc(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pin=!p.pin;if(_supaOK){supaUps('procesos',[procToSupa(p)]).catch(function(e){console.warn('[BMB] Error pin:',e.message);});}sv();mostrarBanner();actualizarBadge();refrPT(id,'ex');}
 function cambiarPrioridadProc(id,val){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pr=val;sv();mostrarBanner();actualizarBadge();}
 function pT(n,b){document.querySelectorAll('[id^="PT-"]').forEach(function(e){e.classList.add('hidden');});document.querySelectorAll('#PT .tbtn').forEach(function(x){x.classList.remove('active');});var e=document.getElementById('PT-'+n);if(e)e.classList.remove('hidden');if(b)b.classList.add('active');}
 function refrPT(pid,tab){var p=DB.procesos.find(function(x){return x.id===pid;});if(p){document.getElementById('mPI').innerHTML=vProc(p);setTimeout(function(){pT(tab,null);},10);}}
@@ -1058,7 +1093,7 @@ function rAlertas(){
   lista.forEach(function(p,idx){var iv=p._i;var pt=textoPA(p);h+='<tr><td>'+iuoEl(iv,p.foco,p.pin)+'</td><td><span class="tl" onclick="aP(\''+p.id+'\')">'+p.ca.substr(0,35)+'</span>'+((iv==='C'||iv==='A')&&p.proximaTarea?'<br><span style="font-size:11px;color:#7C3AED;font-style:italic">&#8220;'+esc(p.proximaTarea.substr(0,35))+'&#8221;</span>':'')+'</td><td style="font-size:12px">'+(pt?pt.substr(0,40):'<span style="color:var(--red)">Sin asignar</span>')+'</td><td><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span></td><td style="font-size:12px">'+(p.re||'-').split(' ').pop()+'</td><td style="white-space:nowrap"><button class="bi" onclick="alMover(\''+p.id+'\',-1,\''+fra+'\')" '+(idx===0?'disabled':'')+'style="padding:1px 4px">↑</button><button class="bi" onclick="alMover(\''+p.id+'\',1,\''+fra+'\')" '+(idx===lista.length-1?'disabled':'')+'style="padding:1px 4px">↓</button></td><td><button class="btn bs bsm" onclick="aP(\''+p.id+'\')">Abrir</button></td></tr>';});
   h+='</tbody></table></div>';document.getElementById('MC').innerHTML=h;
 }
-function alMover(id,dir,fra){if(!DB.alOrder)DB.alOrder=[];var todos2=procVisibles();todos2.forEach(function(p){p._i=calcIUO(p);});var lista2=todos2.sort(function(a,b){var pinA=a.pin?0:1,pinB=b.pin?0:1;if(pinA!==pinB)return pinA-pinB;var focA=a.foco?0:1,focB=b.foco?0:1;if(focA!==focB)return focA-focB;var oa2=DB.alOrder.indexOf(a.id),ob2=DB.alOrder.indexOf(b.id);if(oa2>=0&&ob2>=0)return oa2-ob2;var prA=pOrd(a.pr||'media'),prB=pOrd(b.pr||'media');if(prA!==prB)return prA-prB;return a.ca.localeCompare(b.ca);}).filter(function(p){if(fra&&p.re!==fra)return false;return true;});var ids2=lista2.map(function(p){return p.id;});var idx2=ids2.indexOf(id);if(idx2<0)return;var nuevo=idx2+dir;if(nuevo<0||nuevo>=ids2.length)return;var tmp=ids2[idx2];ids2[idx2]=ids2[nuevo];ids2[nuevo]=tmp;DB.alOrder=ids2;sv();rAlertas();}
+function alMover(id,dir,fra){if(!DB.alOrder)DB.alOrder=[];var todos2=procVisibles();todos2.forEach(function(p){p._i=calcIUO(p);});var lista2=todos2.sort(function(a,b){var pinA=a.pin?0:1,pinB=b.pin?0:1;if(pinA!==pinB)return pinA-pinB;var focA=a.foco?0:1,focB=b.foco?0:1;if(focA!==focB)return focA-focB;var oa2=DB.alOrder.indexOf(a.id),ob2=DB.alOrder.indexOf(b.id);if(oa2>=0&&ob2>=0)return oa2-ob2;var prA=pOrd(a.pr||'media'),prB=pOrd(b.pr||'media');if(prA!==prB)return prA-prB;return a.ca.localeCompare(b.ca);}).filter(function(p){if(fra&&p.re!==fra)return false;return true;});var ids2=lista2.map(function(p){return p.id;});var idx2=ids2.indexOf(id);if(idx2<0)return;var nuevo=idx2+dir;if(nuevo<0||nuevo>=ids2.length)return;var tmp=ids2[idx2];ids2[idx2]=ids2[nuevo];ids2[nuevo]=tmp;DB.alOrder=ids2;sv();supaGuardarPrefs();rAlertas();}
 function rReportes(){var h='<div class="cd"><div class="ch"><span class="ctl">Generar reportes</span></div><div style="padding:1.5rem"><div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#1D4ED8">Los reportes permiten editar datos. Los cambios se guardan en todo el sistema.</div><div class="fr3" style="margin-bottom:1rem"><div class="fg"><label class="fl">Responsable</label><select class="fc" id="rep-r"><option value="">Todos</option>'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl">Desde</label><input type="date" class="fc" id="rep-d1"></div><div class="fg"><label class="fl">Hasta</label><input type="date" class="fc" id="rep-d2"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">';[{t:'📁 Listado de procesos activos',fn:'genPrevListado()'},{t:'🏛️ Procuracion pendiente',fn:'genPrevProcuracion(null)'},{t:'⏰ Audiencias y vencimientos',fn:'genPrevAudiencias()'},{t:'📅 Tareas por periodo',fn:'genPrevAgenda()'},{t:'🚨 Causas criticas y urgencia',fn:'genRepEspecial(\'criticas\')'},{t:'⚠️ Sin proxima tarea',fn:'genRepEspecial(\'sinaccion\')'},{t:'📄 Informe semanal',fn:'genRepEspecial(\'semanal\')'},{t:'📄 Informe mensual',fn:'genRepEspecial(\'mensual\')'}].forEach(function(b){h+='<button class="btn bs" style="padding:1rem;font-size:13px;text-align:left" onclick="'+b.fn+'">'+b.t+'</button>';});h+='</div></div></div><div id="rep-preview-zone"></div>';document.getElementById('MC').innerHTML=h;}
 function getRF(){return v('rep-r')||'';}function getFechas(){return{d1:v('rep-d1'),d2:v('rep-d2')};}
 var PCSS='body{font-family:system-ui,-apple-system,sans-serif;padding:1.5rem;color:#1a2535;max-width:1100px;margin:0 auto}.rep-bloque{border:1px solid #d0d8e4;border-radius:6px;margin-bottom:10px;overflow:hidden;page-break-inside:avoid}.rep-bloque-head{background:#1A4B8C;color:#fff;padding:7px 12px;font-weight:700;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.rep-bloque-sub{font-size:10px;color:#4a5568;padding:4px 12px;background:#f4f6fa;border-bottom:1px solid #e2e8f0}.rep-bloque-body{padding:7px 12px;font-size:11px;color:#1a2535}.rep-bloque-res{border-top:1px solid #e2e8f0;padding:7px 12px;min-height:36px;font-size:11px;background:#fafbfc}.badge-crit{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:600;display:inline-block;-webkit-print-color-adjust:exact;print-color-adjust:exact}.badge-alert{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:600;display:inline-block;-webkit-print-color-adjust:exact;print-color-adjust:exact}.badge-ok{background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:600;display:inline-block;-webkit-print-color-adjust:exact;print-color-adjust:exact}.badge-pri-a{background:#FEE2E2;color:#991B1B;border-radius:20px;padding:1px 8px;font-size:10px;display:inline-block}.badge-pri-m{background:#FEF3C7;color:#92400E;border-radius:20px;padding:1px 8px;font-size:10px;display:inline-block}.badge-pri-b{background:#ECFDF5;color:#065F46;border-radius:20px;padding:1px 8px;font-size:10px;display:inline-block}.cab{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:3px solid #C9A84C}.logo{font-size:28px;font-weight:700;color:#0F1B2D}h2{color:#1A4B8C;margin:1rem 0 .5rem;border-bottom:2px solid #C9A84C;padding-bottom:4px;font-size:14px;-webkit-print-color-adjust:exact;print-color-adjust:exact}h3{color:#4a5568;margin:.75rem 0 .4rem;font-size:12px}@media print{body{padding:.5rem}}';
