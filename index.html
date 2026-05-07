@@ -99,7 +99,7 @@ body{background:var(--cream);color:var(--text);min-height:100vh}
 .fl.req::after{content:" *";color:var(--red)}
 .fc{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;background:#fff}
 .fc:focus{outline:none;border-color:var(--navy)}
-textarea.fc{min-height:80px;resize:vertical}
+textarea.fc{min-height:160px;resize:vertical}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .tbar{display:flex;gap:2px;background:#f0f0f0;border-radius:8px;padding:3px;margin-bottom:1rem;flex-wrap:wrap}
@@ -449,9 +449,13 @@ async function supaCargar(){
       id:l.id,prest:l.tit||'',fFact:l.f||'',fSol:'',
       fPago:l.he?(l.f||''):'',monto:l.descripcion||'',
       concepto:l.cat||'',pagado:!!l.he};});
-    if(res[10].length) DB.lorAgenda=res[10].map(function(a){return{
-      id:a.id,f:a.f||'',hora:a.ho||'',cat:a.cat||'',
-      tit:a.co||'',nota:a.nota||'',he:!!a.he,fReal:a.freal||''};});
+    if(res[10].length){
+      DB.lorAgenda=res[10].map(function(a){return{
+        id:a.id,f:a.f||'',hora:a.ho||'',cat:a.cat||'',
+        tit:a.co||'',nota:a.nota||'',he:!!a.he,fReal:a.freal||''};});
+      var laIds={};res[10].forEach(function(a){if(a.id)laIds[a.id]=true;});
+      _idsSupa['lor_agenda']=laIds;
+    }
 
     localStorage.setItem('b2',JSON.stringify(DB));
     _supaOK=true;
@@ -494,10 +498,12 @@ async function _doSync(){
       await supaSync('lorenzo',DB.lorenzo.map(function(l){return{
         id:l.id,tit:l.prest||null,f:l.fFact||null,hora:null,
         cat:l.concepto||null,descripcion:String(l.monto||''),he:!!l.pagado};}));
-    if(DB.lorAgenda.length)
-      await supaSync('lor_agenda',DB.lorAgenda.map(function(a){return{
+    if(DB.lorAgenda.length){
+      var lorAgMapped=DB.lorAgenda.map(function(a){return{
         id:a.id,f:a.f||null,ho:a.hora||null,co:a.tit||null,
-        nota:a.nota||null,he:!!a.he,freal:a.fReal||null};}));
+        nota:a.nota||null,he:!!a.he,freal:a.fReal||null};});
+      await supaSync('lor_agenda',lorAgMapped);
+    }
     supaInd('ok','☁ Sincronizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
   }catch(e){
     console.error('[BMB] Error sync:',e);
@@ -519,51 +525,32 @@ function supaElim(tabla,id){
 }
 
 function iniciarAutoSync(){
+  // AutoSync seguro: solo descarga si hay MAS registros en Supabase que localmente
+  // No sobreescribe datos locales si el conteo es igual o menor
+  // Esto evita que el AutoSync borre cambios recientes que aún no confirmó Supabase
   if(_autoSyncInt)clearInterval(_autoSyncInt);
   _autoSyncInt=setInterval(function(){
-    if(!_supaOK||_cargando)return;
-    // Comparar agendas y procesos por contenido, no solo por conteo
-    Promise.all([
-      supaGet('agendas').catch(function(){return null;}),
-      supaGet('procesos').catch(function(){return null;})
-    ]).then(function(res){
-      var dAgs=res[0], dProcs=res[1];
-      var cambio=false;
-
-      if(dAgs&&dAgs.length){
-        var mappedAgs=dAgs.map(supaToAg);
-        // Detectar cambios: diferente conteo O diferente contenido
-        var localStr=JSON.stringify(DB.agendas.map(function(a){
-          return {id:a.id,co:a.co,f:a.f,he:a.he,fReal:a.fReal};
-        }).sort(function(a,b){return a.id>b.id?1:-1;}));
-        var supaStr=JSON.stringify(mappedAgs.map(function(a){
-          return {id:a.id,co:a.co,f:a.f,he:a.he,fReal:a.fReal};
-        }).sort(function(a,b){return a.id>b.id?1:-1;}));
-        if(localStr!==supaStr){
-          DB.agendas=mappedAgs;
-          var ids={};mappedAgs.forEach(function(a){if(a.id)ids[a.id]=true;});
+    if(!_supaOK||_cargando||_syncTimer)return; // no interferir con sync en curso
+    supaGet('agendas').then(function(d){
+      if(!d||!d.length)return;
+      // SOLO actualizar si Supabase tiene MAS registros (alguien agregó desde otra PC)
+      if(d.length <= DB.agendas.length) return;
+      // Hay registros nuevos en Supabase — descargar todo
+      Promise.all([
+        supaGet('procesos').catch(function(){return null;}),
+        Promise.resolve(d)
+      ]).then(function(res){
+        var procs=res[0], ags=res[1];
+        if(ags&&ags.length>DB.agendas.length){
+          DB.agendas=ags.map(supaToAg);
+          var ids={};ags.forEach(function(a){if(a.id)ids[a.id]=true;});
           _idsSupa['agendas']=ids;
-          cambio=true;
         }
-      }
-
-      if(dProcs&&dProcs.length){
-        var mappedProcs=dProcs.map(supaToProc);
-        var lStr=JSON.stringify(DB.procesos.map(function(p){
-          return {id:p.id,ca:p.ca,proximaTarea:p.proximaTarea,fechaTarea:p.fechaTarea};
-        }).sort(function(a,b){return a.id>b.id?1:-1;}));
-        var sStr=JSON.stringify(mappedProcs.map(function(p){
-          return {id:p.id,ca:p.ca,proximaTarea:p.proximaTarea,fechaTarea:p.fechaTarea};
-        }).sort(function(a,b){return a.id>b.id?1:-1;}));
-        if(lStr!==sStr){
-          DB.procesos=mappedProcs;
-          var pids={};mappedProcs.forEach(function(x){if(x.id)pids[x.id]=true;});
+        if(procs&&procs.length>=DB.procesos.length){
+          DB.procesos=procs.map(supaToProc);
+          var pids={};procs.forEach(function(x){if(x.id)pids[x.id]=true;});
           _idsSupa['procesos']=pids;
-          cambio=true;
         }
-      }
-
-      if(cambio){
         localStorage.setItem('b2',JSON.stringify(DB));
         try{
           if(CS==='dash')rDash();
@@ -572,7 +559,7 @@ function iniciarAutoSync(){
           mostrarBanner();actualizarBadge();
         }catch(ex){}
         supaInd('ok','☁ Actualizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
-      }
+      }).catch(function(){});
     }).catch(function(){});
   },60000);
 }
@@ -1129,11 +1116,11 @@ function lorActCard(a){return'<div class="lor-act-card"><div style="min-width:58
 function lorTab(tab,btn){document.querySelectorAll('#LTB .tbtn').forEach(function(x){x.classList.remove('active');});if(btn)btn.classList.add('active');var r=document.getElementById('lor-reintegros');var a=document.getElementById('lor-agenda');if(r)r.classList.toggle('hidden',tab!=='reintegros');if(a)a.classList.toggle('hidden',tab!=='agenda');}
 function filtrarLorAgenda(){var cat=v('lor-cat-filter');var lp=DB.lorAgenda.filter(function(a){return!a.he&&a.f>=hoy()&&(!cat||a.cat===cat);}).sort(function(a,b){return a.f.localeCompare(b.f);});var lpa=DB.lorAgenda.filter(function(a){return(a.he||(a.f<hoy()))&&(!cat||a.cat===cat);}).sort(function(a,b){return b.f.localeCompare(a.f);}).slice(0,20);var elP=document.getElementById('lor-lista-prox');var elPa=document.getElementById('lor-lista-pas');if(elP)elP.innerHTML=lp.length?lp.map(lorActCard).join(''):'<div style="color:var(--muted);font-size:13px">Sin actividades</div>';if(elPa)elPa.innerHTML=lpa.length?lpa.map(lorActCard).join(''):'<div style="color:var(--muted);font-size:13px">Sin actividades anteriores</div>';}
 function oLorActNew(){document.getElementById('mLorActI').innerHTML='<div class="mh"><div class="mt2">💙 Nueva actividad de Lorenzo</div><button class="bi" onclick="cM(\'mLorAct\')">✕</button></div><div class="fr3"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="la-f" value="'+hoy()+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="la-h"></div><div class="fg"><label class="fl req">Categoria</label><select class="fc" id="la-cat">'+LOR_CATS.map(function(c){return'<option>'+c+'</option>';}).join('')+'</select></div></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="la-tit" placeholder="Ej: Turno con la fonoaudiologa..."></div><div class="fg"><label class="fl">Notas adicionales</label><textarea class="fc" id="la-nota" rows="2"></textarea></div><div style="background:#EDE9FE;border:1px solid #DDD6FE;border-radius:8px;padding:10px;font-size:12px;color:#5B21B6;margin-bottom:1rem">Al configurar la integracion con Google Calendar, los recordatorios se enviaran al calendario compartido con Gabriela.</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mLorAct\')">Cancelar</button><button class="btn blor" onclick="gLorAct()">Guardar actividad</button></div>';document.getElementById('mLorAct').classList.add('open');}
-function gLorAct(){var tit=document.getElementById('la-tit').value.trim();if(!tit){alert('La descripcion es obligatoria');return}DB.lorAgenda.push({id:uid(),f:v('la-f'),hora:v('la-h'),cat:v('la-cat'),tit:tit,nota:document.getElementById('la-nota').value,he:false});sv();cM('mLorAct');var btnAg=document.querySelectorAll('#LTB .tbtn');if(btnAg&&btnAg[1]){lorTab('agenda',btnAg[1]);}else{rLorenzo();}}
+function gLorAct(){var tit=document.getElementById('la-tit').value.trim();if(!tit){alert('La descripcion es obligatoria');return}var _nid=uid();DB.lorAgenda.push({id:_nid,f:v('la-f'),hora:v('la-h'),cat:v('la-cat'),tit:tit,nota:document.getElementById('la-nota').value,he:false});if(!_idsSupa['lor_agenda'])_idsSupa['lor_agenda']={};_idsSupa['lor_agenda'][_nid]=false;sv();cM('mLorAct');var btnAg=document.querySelectorAll('#LTB .tbtn');if(btnAg&&btnAg[1]){lorTab('agenda',btnAg[1]);}else{rLorenzo();}}
 function marcarLorAct(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(a){a.he=true;a.fReal=hoy();sv();}rLorenzo();}
 function editarLorAct(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(!a)return;document.getElementById('mLorActI').innerHTML='<div class="mh"><div class="mt2">Editar actividad de Lorenzo</div><button class="bi" onclick="cM(\'mLorAct\')">✕</button></div><div class="fr3"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="la-f" value="'+(a.f||hoy())+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="la-h" value="'+(a.hora||'')+'"></div><div class="fg"><label class="fl req">Categoria</label><select class="fc" id="la-cat">'+LOR_CATS.map(function(c){return'<option value="'+c+'"'+(a.cat===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="la-tit" value="'+esc(a.tit||'')+'"></div><div class="fg"><label class="fl">Notas adicionales</label><textarea class="fc" id="la-nota" rows="2">'+esc(a.nota||'')+'</textarea></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mLorAct\')">Cancelar</button><button class="btn blor" onclick="gLorActEdit(\''+id+'\')">Guardar cambios</button></div>';document.getElementById('mLorAct').classList.add('open');}
 function gLorActEdit(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(!a)return;var tit=document.getElementById('la-tit').value.trim();if(!tit){alert('La descripcion es obligatoria');return}a.f=v('la-f');a.hora=v('la-h');a.cat=v('la-cat');a.tit=tit;a.nota=document.getElementById('la-nota').value;sv();cM('mLorAct');rLorenzo();}
-function elimLorAct(id){if(!confirm('¿Eliminar esta actividad?'))return;DB.lorAgenda=DB.lorAgenda.filter(function(x){return x.id!==id;});sv();rLorenzo();}
+function elimLorAct(id){if(!confirm('¿Eliminar esta actividad?'))return;var _laId=id;DB.lorAgenda=DB.lorAgenda.filter(function(x){return x.id!==_laId;});supaElim('lorAgenda',_laId);sv();rLorenzo();}
 function oLorenzoNew(){document.getElementById('mLoI').innerHTML='<div class="mh"><div class="mt2">Nuevo reintegro</div><button class="bi" onclick="cM(\'mLo\')">✕</button></div><div class="fr"><div class="fg"><label class="fl req">Prestador</label><input class="fc" id="lo-p"></div><div class="fg"><label class="fl">Monto ($)</label><input class="fc" id="lo-m" type="number" step="0.01"></div></div><div class="fg"><label class="fl">Concepto</label><input class="fc" id="lo-c"></div><div class="fr3"><div class="fg"><label class="fl req">Fecha factura</label><input type="date" class="fc" id="lo-ff" value="'+hoy()+'"></div><div class="fg"><label class="fl">Fecha solicitud</label><input type="date" class="fc" id="lo-fs"></div><div class="fg"><label class="fl">Fecha de cobro</label><input type="date" class="fc" id="lo-fp"></div></div><div class="fg"><label class="fl">¿Es un reintegro recurrente?</label><select class="fc" id="lo-rec" onchange="toggleLorRec()"><option value="">No — evento unico</option><option value="semanal">Si — semanal</option><option value="mensual">Si — mensual</option></select></div><div id="lo-rec-zona" class="hidden"><div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:8px;padding:12px;margin-bottom:12px"><div class="fr"><div class="fg"><label class="fl">Repetir hasta</label><input type="date" class="fc" id="lo-rec-hasta"></div><div class="fg" id="lo-rec-dia-zona"><label class="fl">Dia de la semana</label><select class="fc" id="lo-rec-dia"><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miercoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sabado</option><option value="0">Domingo</option></select></div></div><div class="fg" id="lo-rec-dom-zona" style="display:none"><label class="fl">Dia del mes</label><select class="fc" id="lo-rec-dom">'+Array.from({length:28},function(_,i){return'<option value="'+(i+1)+'">'+(i+1)+'</option>';}).join('')+'</select></div><div style="font-size:11px;color:#5B21B6;margin-top:4px">Se crearan multiples registros, uno por cada ocurrencia hasta la fecha indicada.</div></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mLo\')">Cancelar</button><button class="btn bp" onclick="gLorenzo()">Guardar</button></div>';document.getElementById('mLo').classList.add('open');}
 function toggleLorRec(){var v2=v('lo-rec');var zona=document.getElementById('lo-rec-zona');if(!zona)return;zona.classList.toggle('hidden',!v2);var dz=document.getElementById('lo-rec-dia-zona');var mz=document.getElementById('lo-rec-dom-zona');if(dz)dz.style.display=v2==='semanal'?'':'none';if(mz)mz.style.display=v2==='mensual'?'':'none';}
 function gLorenzo(){var p2=document.getElementById('lo-p').value.trim();var ff=v('lo-ff');if(!p2||!ff){alert('Prestador y fecha son obligatorios');return}var fp=v('lo-fp');var rec=v('lo-rec');var hasta=v('lo-rec-hasta');if(rec&&hasta){var base={prest:p2,monto:v('lo-m'),concepto:document.getElementById('lo-c').value,fSol:v('lo-fs'),pagado:false};var d=new Date(ff+'T12:00:00');var dh=new Date(hasta+'T12:00:00');var count=0;while(d<=dh&&count<100){DB.lorenzo.push(Object.assign({},base,{id:uid(),fFact:d.toISOString().split('T')[0],fPago:''}));if(rec==='semanal')d.setDate(d.getDate()+7);else{d.setMonth(d.getMonth()+1);}count++;}sv();cM('mLo');rLorenzo();return;}DB.lorenzo.push({id:uid(),prest:p2,monto:v('lo-m'),concepto:document.getElementById('lo-c').value,fFact:ff,fSol:v('lo-fs'),fPago:fp,pagado:!!fp});sv();cM('mLo');rLorenzo();}
