@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%230F1B2D'/><text y='72' x='50' text-anchor='middle' font-size='58' font-family='system-ui,sans-serif' font-weight='700' fill='%23C9A84C'>B</text></svg>">
 <title>BMB 2.0 v2.6 — Sistema Juridico BMB y Asociados</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif}
@@ -225,12 +224,12 @@ textarea.fc{min-height:160px;resize:vertical}
   </nav>
   <div class="ma">
     <div id="bannerZone"></div>
-    <div class="topbar"><div id="supa-ind" style="font-size:11px;padding:3px 10px;border-radius:6px;background:#EFF6FF;color:#1D4ED8;font-weight:500;white-space:nowrap;margin-right:8px">☁ Conectando...</div>
+    <div class="topbar">
       <div class="topbar-left">
         <button class="btn-atras" onclick="navAtras()" id="btnAtras" style="opacity:.4">← Atras</button>
         <div class="tt" id="TT">Panel Principal</div>
       </div>
-      <div class="td" id="TD"></div>
+      <div style="display:flex;align-items:center;gap:8px"><div class="td" id="TD"></div><div id="sbCloudIcon" style="font-size:15px;cursor:default" title="Estado Supabase">☁</div></div>
     </div>
     <div class="ct" id="MC"></div>
   </div>
@@ -254,192 +253,6 @@ textarea.fc{min-height:160px;resize:vertical}
 <div class="mb" id="mEditVc"><div class="md mdm" id="mEditVcI"></div></div>
 <div class="mb" id="mEditTxt"><div class="md mdm" id="mEditTxtI"></div></div>
 <script>
-
-// ============================================================
-// BMB 2.0 v2.6 — Capa Supabase definitiva
-// Mapeo columnas verificado 06/05/2026
-// ============================================================
-var SUPA_URL = 'https://ojcdfzphwloblhfdivdd.supabase.co';
-var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qY2RmenBod2xvYmxoZmRpdmRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNTg0NDQsImV4cCI6MjA5MjYzNDQ0NH0.56KRksw4n0rDDstBiXtFGH5L6dP7YKWGZ8BGz0h2o8M';
-var SUPA_H_GET = {'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
-var SUPA_H_INS = {'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'};
-var SUPA_H_UPS = {'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'};
-var _supaOK = false;
-var _cargando = false;
-var _syncTimer = null;
-var _autoSyncInt = null;
-var _idsSupa = {};
-
-function supaInd(st,msg){
-  var el=document.getElementById('supa-ind');
-  if(!el)return;
-  var cfg={ok:{bg:'#D1FAE5',co:'#065F46',tx:'☁ Sincronizado'},sync:{bg:'#FEF3C7',co:'#92400E',tx:'☁ Sincronizando...'},err:{bg:'#FEE2E2',co:'#991B1B',tx:'☁ Sin conexión'},load:{bg:'#EFF6FF',co:'#1D4ED8',tx:'☁ Cargando...'}};
-  var x=cfg[st]||cfg.ok;
-  el.style.background=x.bg;el.style.color=x.co;el.textContent=msg||x.tx;
-}
-
-function supaGet(tabla){
-  return fetch(SUPA_URL+'/rest/v1/'+tabla+'?select=*&limit=5000',{method:'GET',headers:SUPA_H_GET})
-    .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error(tabla+': '+t);});return r.json();});
-}
-
-function supaInsert(tabla,filas){
-  if(!filas||!filas.length)return Promise.resolve();
-  return fetch(SUPA_URL+'/rest/v1/'+tabla,{method:'POST',headers:SUPA_H_INS,body:JSON.stringify(filas)})
-    .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error('INSERT '+tabla+': '+t);});});
-}
-
-function supaUpdate(tabla,fila){
-  return fetch(SUPA_URL+'/rest/v1/'+tabla+'?id=eq.'+encodeURIComponent(fila.id),{method:'PATCH',headers:SUPA_H_INS,body:JSON.stringify(fila)})
-    .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error('UPDATE '+tabla+': '+t);});});
-}
-
-function supaSync(tabla,filas){
-  if(!filas||!filas.length)return Promise.resolve();
-  var ids=_idsSupa[tabla]||{};
-  var nuevos=filas.filter(function(f){return !ids[f.id];});
-  var existentes=filas.filter(function(f){return !!ids[f.id];});
-  var p=Promise.resolve();
-  if(nuevos.length)p=p.then(function(){return supaInsert(tabla,nuevos);});
-  existentes.forEach(function(fila){p=p.then(function(){return supaUpdate(tabla,fila);});});
-  filas.forEach(function(f){if(f.id){ids[f.id]=true;}});
-  _idsSupa[tabla]=ids;
-  return p;
-}
-
-function supaDel(tabla,id){
-  return fetch(SUPA_URL+'/rest/v1/'+tabla+'?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:SUPA_H_GET})
-    .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error(t);});});
-}
-
-function procToSupa(p){return{id:p.id,ca:p.ca||'',actor:p.actor||null,demandado:p.demandado||null,ti:p.ti||null,pr:p.pr||'media',re:p.re||null,par:p.par||null,ex:p.ex||null,ju:p.ju||null,ins:p.ins||null,mo:p.mo||null,nc:p.nc||null,fi:p.fi||null,um:p.um||null,fa:p.fa||null,ob:p.ob||null,conf:!!p.conf,ar:!!p.ar,pin:!!p.pin,foco:!!p.foco,foco_motivo:p.focoMotivo||null,proximatarea:p.proximaTarea||null,fechatarea:p.fechaTarea||null,canon:p.canon||null,canonfecha:p.canonFecha||null,canonper:p.canonPer||null,contvenc:p.contVenc||null,locatario:p.locatario||null,servicios:p.servicios||null,deudas:p.deudas||null};}
-function supaToProc(p){return{id:p.id,ca:p.ca||'',actor:p.actor||null,demandado:p.demandado||null,ti:p.ti||null,pr:p.pr||'media',re:p.re||null,par:p.par||null,ex:p.ex||null,ju:p.ju||null,ins:p.ins||null,mo:p.mo||null,nc:p.nc||null,fi:p.fi||null,um:p.um||null,fa:p.fa||null,ob:p.ob||null,conf:!!p.conf,ar:!!p.ar,pin:!!p.pin,foco:!!p.foco,focoMotivo:p.foco_motivo||null,proximaTarea:p.proximatarea||null,fechaTarea:p.fechatarea||null,canon:p.canon||null,canonFecha:p.canonfecha||null,canonPer:p.canonper||null,contVenc:p.contvenc||null,locatario:p.locatario||null,servicios:p.servicios||null,deudas:p.deudas||null};}
-function agToSupa(a){return{id:a.id,pid:a.pid||null,resp:a.resp||null,f:a.f||null,ho:a.ho||null,co:a.co||null,nota:a.nota||null,he:!!a.he,freal:a.fReal||null};}
-function supaToAg(a){return{id:a.id,pid:a.pid||null,resp:a.resp||null,f:a.f||null,ho:a.ho||null,co:a.co||null,nota:a.nota||null,he:!!a.he,fReal:a.freal||null};}
-function procurToSupa(x){return{id:x.id,pid:x.pid||null,f:x.f||null,ho:x.ho||null,lugar:x.lugar||null,co:x.co||null,re2:x.re2||null,flim:x.fLim||null,realizada:!!x.realizada,freal:x.fReal||null,resultado:x.resultado||null};}
-function supaToProcur(x){return{id:x.id,pid:x.pid||null,f:x.f||null,ho:x.ho||null,lugar:x.lugar||null,co:x.co||null,re2:x.re2||null,fLim:x.flim||null,realizada:!!x.realizada,fReal:x.freal||null,resultado:x.resultado||null};}
-function vencToSupa(v){return{id:v.id,pid:v.pid||null,f:v.f||null,ho:v.ho||null,ac:v.ac||null,re2:v.re2||null,ca2:!!v.ca2,r:!!v.r,conf2:!!v.conf2};}
-
-async function supaCargar(){
-  _cargando=true;supaInd('load');
-  try{
-    var res=await Promise.all([
-      supaGet('procesos').catch(function(){return[];}),
-      supaGet('agendas').catch(function(){return[];}),
-      supaGet('procuraciones').catch(function(){return[];}),
-      supaGet('vencimientos').catch(function(){return[];}),
-      supaGet('intervinientes').catch(function(){return[];}),
-      supaGet('cuenta_corriente').catch(function(){return[];}),
-      supaGet('finanzas').catch(function(){return[];}),
-      supaGet('usuarios').catch(function(){return[];}),
-      supaGet('juzgados').catch(function(){return[];}),
-      supaGet('lorenzo').catch(function(){return[];}),
-      supaGet('lor_agenda').catch(function(){return[];})
-    ]);
-    var tabNames=['procesos','agendas','procuraciones','vencimientos','intervinientes','cuenta_corriente','finanzas','usuarios','juzgados','lorenzo','lor_agenda'];
-    tabNames.forEach(function(t,i){if(!res[i]||!res[i].length)return;var ids={};res[i].forEach(function(r){if(r.id)ids[r.id]=true;});_idsSupa[t]=ids;});
-    if(res[0].length)DB.procesos=res[0].map(supaToProc);
-    if(res[1].length)DB.agendas=res[1].map(supaToAg);
-    if(res[2].length)DB.procuraciones=res[2].map(supaToProcur);
-    if(res[3].length)DB.vencimientos=res[3];
-    if(res[4].length)DB.intervinientes=res[4];
-    if(res[5].length)DB.cc=res[5].map(function(x){return{id:x.id,pid:x.pid||'',f:x.f||'',di:x.divisa||'$',co:x.concepto||'',db:String(x.debe||0),hb:String(x.haber||0)};});
-    if(res[6].length)DB.finanzas=res[6];
-    if(res[7].length){DB.usuarios=res[7];res[7].forEach(function(u){if(u.rol!=='referencia'&&RESPONSABLES.indexOf(u.nombre)<0)RESPONSABLES.push(u.nombre);});}
-    if(res[8].length){res[8].forEach(function(j){if(j.nombre&&DB.juzgados.indexOf(j.nombre)<0)DB.juzgados.push(j.nombre);});}
-    if(res[9].length)DB.lorenzo=res[9].map(function(l){return{id:l.id,prest:l.tit||'',fFact:l.f||'',fSol:'',fPago:l.he?(l.f||''):'',monto:l.descripcion||'',concepto:l.cat||'',pagado:!!l.he};});
-    if(res[10].length)DB.lorAgenda=res[10].map(function(a){return{id:a.id,f:a.f||'',hora:a.ho||'',cat:a.cat||'',tit:a.co||'',nota:a.nota||'',he:!!a.he,fReal:a.freal||''};});
-    localStorage.setItem('b2',JSON.stringify(DB));
-    _supaOK=true;_cargando=false;
-    supaInd('ok');
-    console.log('[BMB] Datos cargados — procesos:'+DB.procesos.length+' agendas:'+DB.agendas.length);
-    await supaCargarPrefs();
-    iniciarAutoSync();
-  }catch(e){
-    console.error('[BMB] Error carga:',e);
-    _cargando=false;_supaOK=false;supaInd('err');
-  }
-}
-
-function supaSyncNow(){
-  if(_cargando||!_supaOK)return;
-  if(_syncTimer)clearTimeout(_syncTimer);
-  _syncTimer=setTimeout(function(){_doSync();},800);
-}
-
-async function _doSync(){
-  supaInd('sync');
-  try{
-    var h=hoy();
-    DB.procesos.forEach(function(p){
-      var fut=DB.agendas.filter(function(a){return a.pid===p.id&&!a.he&&a.f&&a.f>=h;}).sort(function(a,b){return a.f.localeCompare(b.f);});
-      if(fut.length&&fut[0].f!==(p.fechaTarea||'')){p.fechaTarea=fut[0].f;p.proximaTarea=fut[0].co?fut[0].co.substr(0,120):p.proximaTarea;}
-    });
-    await supaSync('procesos',DB.procesos.map(procToSupa));
-    await supaSync('agendas',DB.agendas.map(agToSupa));
-    await supaSync('procuraciones',DB.procuraciones.map(procurToSupa));
-    await supaSync('vencimientos',DB.vencimientos.map(vencToSupa));
-    if(DB.intervinientes.length)await supaSync('intervinientes',DB.intervinientes);
-    if(DB.cc.length)await supaSync('cuenta_corriente',DB.cc.map(function(x){return{id:x.id,pid:x.pid||null,f:x.f||null,divisa:x.di||'$',concepto:x.co||null,debe:parseFloat(x.db)||0,haber:parseFloat(x.hb)||0};}));
-    if(DB.finanzas.length)await supaSync('finanzas',DB.finanzas);
-    if(DB.usuarios.length)await supaSync('usuarios',DB.usuarios.map(function(u){return{id:u.id,nombre:u.nombre,pass:u.pass,rol:u.rol||'abogado',activo:true};}));
-    if(DB.lorenzo.length)await supaSync('lorenzo',DB.lorenzo.map(function(l){return{id:l.id,tit:l.prest||null,f:l.fFact||null,hora:null,cat:l.concepto||null,descripcion:String(l.monto||''),he:!!l.pagado};}));
-    if(DB.lorAgenda.length)await supaSync('lor_agenda',DB.lorAgenda.map(function(a){return{id:a.id,f:a.f||null,ho:a.hora||null,co:a.tit||null,nota:a.nota||null,he:!!a.he,freal:a.fReal||null};}));
-    supaInd('ok','☁ Sincronizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
-  }catch(e){
-    console.error('[BMB] Error sync:',e);supaInd('err','☁ Error al sincronizar');
-  }
-}
-
-function supaElim(tabla,id){
-  var t2={agendas:'agendas',procuraciones:'procuraciones',vencimientos:'vencimientos',intervinientes:'intervinientes',cc:'cuenta_corriente',finanzas:'finanzas',lorAgenda:'lor_agenda',lorenzo:'lorenzo',procesos:'procesos',usuarios:'usuarios'}[tabla]||tabla;
-  if(id&&_supaOK){supaDel(t2,id).catch(function(e){console.warn('[BMB] Error eliminando',t2,e.message);});if(_idsSupa[t2])delete _idsSupa[t2][id];}
-}
-
-function iniciarAutoSync(){
-  if(_autoSyncInt)clearInterval(_autoSyncInt);
-  _autoSyncInt=setInterval(function(){
-    if(!_supaOK||_cargando||_syncTimer)return;
-    supaGet('agendas').then(function(d){
-      if(!d||!d.length)return;
-      if(d.length<=DB.agendas.length)return;
-      var mapped=d.map(supaToAg);
-      DB.agendas=mapped;
-      var ids={};mapped.forEach(function(a){if(a.id)ids[a.id]=true;});
-      _idsSupa['agendas']=ids;
-      supaGet('procesos').then(function(p){
-        if(p&&p.length){DB.procesos=p.map(supaToProc);var pids={};p.forEach(function(x){if(x.id)pids[x.id]=true;});_idsSupa['procesos']=pids;}
-        localStorage.setItem('b2',JSON.stringify(DB));
-        try{if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='agenda')renderAgLista();mostrarBanner();actualizarBadge();}catch(ex){}
-        supaInd('ok','☁ Actualizado '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
-      }).catch(function(){});
-    }).catch(function(){});
-  },60000);
-}
-
-async function supaGuardarPrefs(){
-  if(!_supaOK||!CU)return;
-  try{
-    var payload={uid:CU.id,pinorder:JSON.stringify(DB.pinOrder||[]),alorder:JSON.stringify(DB.alOrder||[])};
-    await fetch(SUPA_URL+'/rest/v1/preferencias',{method:'POST',headers:SUPA_H_UPS,body:JSON.stringify(payload)});
-  }catch(e){console.warn('[BMB] Error guardando preferencias:',e.message);}
-}
-
-async function supaCargarPrefs(){
-  if(!_supaOK||!CU)return;
-  try{
-    var r=await fetch(SUPA_URL+'/rest/v1/preferencias?uid=eq.'+encodeURIComponent(CU.id)+'&select=*',{method:'GET',headers:SUPA_H_GET});
-    if(!r.ok)return;
-    var d=await r.json();
-    if(d&&d.length){
-      var prefs=d[0];
-      if(prefs.pinorder){try{DB.pinOrder=JSON.parse(prefs.pinorder);}catch(e){}}
-      if(prefs.alorder){try{DB.alOrder=JSON.parse(prefs.alorder);}catch(e){}}
-      localStorage.setItem('b2',JSON.stringify(DB));
-    }
-  }catch(e){console.warn('[BMB] Error cargando preferencias:',e.message);}
-}
-
 var UMBRALES={alta:{critico:10,alerta:5},media:{critico:20,alerta:12},baja:{critico:30,alerta:20}};
 var UMBRALES_TAREA={alta:7,media:10,baja:20};
 var VENC_CRIT=3,VENC_AL=7;
@@ -451,7 +264,7 @@ var LOR_CATS=['Turno medico','Fonoaudiologia','Psicopedagogia','Psicologia','Gim
 var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],juzgados:JUZGADOS_BASE.slice(),tp:['Accidente de Trabajo LRT','Enfermedad Laboral LRT','Laboral - Cobro de Pesos','Laboral - Despido','Sucesion','Danos y Perjuicios','Derecho Inmobiliario - Locacion','Derecho Inmobiliario - Usucapion','Cobro de Pesos','Defensa del Consumidor','SRT','Ministerio de Trabajo','Extrajudicial','Ejecutivo','Divorcio','Alimentos','Otro'],usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
 var CU=null,CS='dash',_histNav=[],_listadoFiltrado=[];
 var fR2='',fT2='',fB2='',fP2='',fI2='';
-function sv(){try{localStorage.setItem('b2',JSON.stringify(DB));if(typeof supaSyncNow==='function')supaSyncNow();}catch(e){alert('Error al guardar: '+e.message);}}
+function sv(){try{localStorage.setItem('b2',JSON.stringify(DB))}catch(e){alert('Error al guardar: '+e.message)}}
 function ld(){
   try{
     var d=localStorage.getItem('b2');if(!d)return;
@@ -470,11 +283,10 @@ function ld(){
     sv();
   }catch(e){console.error('Error cargando:',e);}
 }
-ld();if(typeof supaCargar==='function'){supaCargar().catch(function(){supaInd('err');});}
+ld();
 function uid(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5);}
 function hoy(){return new Date().toISOString().split('T')[0];}
 function proxFechaHabil(desde){var d=desde?new Date(desde+'T12:00:00'):new Date();var dow=d.getDay();if(dow===6)d.setDate(d.getDate()+2);else if(dow===0)d.setDate(d.getDate()+1);return d.toISOString().split('T')[0];}
-function fechaSugeridaPorPrioridad(pr,pin){var dias=15;if(pin===true)dias=7;else if(pr==='alta')dias=7;else if(pr==='media')dias=15;else if(pr==='baja')dias=25;var d=new Date();d.setDate(d.getDate()+dias);return d.toISOString().split('T')[0];}
 function validarLimiteTareas(resp,fecha,excluirId){if(!resp||!fecha)return true;var count=DB.agendas.filter(function(a){return a.resp===resp&&a.f===fecha&&!a.he&&(!excluirId||a.id!==excluirId);}).length;if(count>=7){alert('LIMITE ALCANZADO\n'+resp.split(' ').pop()+' ya tiene 7 tareas pendientes para el '+fF(fecha)+'.\nSeleccione otra fecha o redistribuya las tareas existentes.');return false;}return true;}
 function fF(f){if(!f)return'-';var p=f.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function fFc(f){if(!f)return'-';var p=f.split('-');return p[2]+'/'+p[1];}
@@ -527,7 +339,7 @@ function login(){
   if(f.rol==='admin'){var nl=document.getElementById('navLorenzo');if(nl)nl.style.display='flex';var nf=document.getElementById('navFinanzas');if(nf)nf.style.display='flex';}
   actualizarBadge();mostrarBanner();nav('dash');
 }
-function logout(){CU=null;_histNav=[];document.getElementById('LP').classList.remove('hidden');document.getElementById('AL').classList.add('hidden');document.getElementById('lu').value='';document.getElementById('lp2').value='';document.getElementById('bannerZone').innerHTML='';}
+function logout(){if(window._autoSyncInterval){clearInterval(window._autoSyncInterval);window._autoSyncInterval=null;}_sbLoaded=false;_lastSyncedSnap=null;CU=null;_histNav=[];document.getElementById('LP').classList.remove('hidden');document.getElementById('AL').classList.add('hidden');document.getElementById('lu').value='';document.getElementById('lp2').value='';document.getElementById('bannerZone').innerHTML='';sbActualizarIcono('off');}
 function navAtras(){if(_histNav.length>1){_histNav.pop();var prev=_histNav[_histNav.length-1];_histNav.pop();nav(prev);}}
 function nav(s){
   CS=s;_histNav.push(s);if(_histNav.length>20)_histNav=_histNav.slice(-20);
@@ -588,7 +400,7 @@ function rDash(){
   h+='</div><div>';
   h+='<div class="cd" style="margin-bottom:1rem"><div class="ch"><span class="ctl">Proximas audiencias (45 dias)</span><button class="btn bs bsm" onclick="nav(\'venc\')">Ver todas</button></div><div style="padding:1rem 1.25rem">';
   if(!auds.length)h+='<div style="color:var(--muted);font-size:13px">Sin audiencias en los proximos 45 dias</div>';
-  else h+=auds.slice(0,15).map(function(vx){var p2=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';var bc=df<=0?'#DC2626':df<=3?'#DC2626':df<=7?'#D97706':'#1E40AF';var bt=df<=0?'HOY':df+'d';var circ='<div style="width:36px;height:36px;border-radius:50%;border:2.5px solid '+bc+';display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:'+(df>99?'8':'11')+'px;font-weight:800;color:'+bc+'">'+bt+'</span></div>';return'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0"><div style="background:'+c2+';color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;min-width:54px;text-align:center;flex-shrink:0">'+fFc(vx.f)+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;cursor:pointer" onclick="aP(\''+(p2?p2.id:'')+'\')">'+( p2?p2.ca:'-')+'</div><div style="font-size:12px;color:#374151;margin-top:3px;line-height:1.5">'+(vx.ac||'').substr(0,140)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho+'h':'')+'</div></div>'+circ+(vx.conf2?'<span class="vc-conf" style="flex-shrink:0">CONF</span>':'')+'</div>';}).join('');
+  else h+=auds.slice(0,15).map(function(vx){var p2=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';return'<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0"><div style=\'background:'+c2+';color:#fff;border-radius:50%;width:46px;height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;font-weight:700\'><div style=\'font-size:14px;line-height:1\'>'+fF(vx.f).substr(0,2)+'</div><div style=\'font-size:9px;opacity:.85;margin-top:1px\'>'+mesAbr(vx.f)+'</div></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;cursor:pointer" onclick="aP(\''+(p2?p2.id:'')+'\')">'+( p2?p2.ca:'-')+'</div><div style="font-size:12px;color:#374151;margin-top:3px;line-height:1.5">'+(vx.ac||'').substr(0,140)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho+'h':'')+'</div></div>'+(vx.conf2?'<span class="vc-conf">CONF</span>':'')+'</div>';}).join('');
   h+='</div></div>';
   if(lorProx.length){h+='<div class="cd" style="margin-bottom:1rem;border-left:4px solid var(--lor)"><div class="ch"><span class="ctl" style="color:var(--lor)">💙 Lorenzo</span><button class="btn blor bsm" onclick="nav(\'lorenzo\')">Ver agenda</button></div><div style="padding:.75rem 1.25rem">';lorProx.forEach(function(a){h+='<div class="lor-act-card"><div style="min-width:52px;text-align:center;flex-shrink:0"><div style="font-size:18px;font-weight:700;color:var(--lor)">'+fF(a.f).substr(0,2)+'</div><div style="font-size:10px;color:var(--muted)">'+mesAbr(a.f)+'</div></div><div style="flex:1;min-width:0"><span class="lor-cat-badge">'+(a.cat||'Otro')+'</span><div style="font-size:13px;margin-top:4px;font-weight:600">'+esc(a.tit||'-')+'</div>'+(a.hora?'<div style="font-size:11px;color:var(--muted)">'+a.hora+'h</div>':'')+'</div></div>';});h+='</div></div>';}
   h+='</div></div>';
@@ -610,7 +422,7 @@ function guardarPinOrder(){
   DB.pinOrder=Array.from(lista.querySelectorAll('.pin-drag')).map(function(el){return el.getAttribute('data-pid');});
   sv();
 }
-function pinMover(id,dir){var todos2=procVisibles().filter(function(p){return p.pin;});var ordenados=todos2.slice().sort(function(a,b){var oa=DB.pinOrder.indexOf(a.id),ob=DB.pinOrder.indexOf(b.id);if(oa<0)oa=999;if(ob<0)ob=999;return oa-ob;});var ids=ordenados.map(function(p){return p.id;});var idx=ids.indexOf(id);if(idx<0)return;var nuevo=idx+dir;if(nuevo<0||nuevo>=ids.length)return;var tmp=ids[idx];ids[idx]=ids[nuevo];ids[nuevo]=tmp;DB.pinOrder=ids;sv();supaGuardarPrefs();rDash();}
+function pinMover(id,dir){var todos2=procVisibles().filter(function(p){return p.pin;});var ordenados=todos2.slice().sort(function(a,b){var oa=DB.pinOrder.indexOf(a.id),ob=DB.pinOrder.indexOf(b.id);if(oa<0)oa=999;if(ob<0)ob=999;return oa-ob;});var ids=ordenados.map(function(p){return p.id;});var idx=ids.indexOf(id);if(idx<0)return;var nuevo=idx+dir;if(nuevo<0||nuevo>=ids.length)return;var tmp=ids[idx];ids[idx]=ids[nuevo];ids[nuevo]=tmp;DB.pinOrder=ids;sv();rDash();}
 function dashRowInner(p){
   var iv=p._i||calcIUO(p);var u=UMBRALES[p.pr||'media']||UMBRALES.media;var dias=dD(p.um||p.fi);
   var pct=iv==='P'?100:iv==='S'?50:Math.max(0,Math.round((1-dias/u.critico)*100));
@@ -645,7 +457,7 @@ function dashRow(p){
   return'<div class="cr2"><div class="ck'+(p.pin?' dn':'')+'" onclick="togglePin(\''+p.id+'\')">'+(p.pin?'📌':'')+'</div><div class="ci"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="cn" onclick="aP(\''+p.id+'\')">'+p.ca+'</div>'+(!p.pin&&!p.foco?'<button class="btn bf bsm" onclick="oFoco(\''+p.id+'\')" style="padding:2px 8px;font-size:11px">🔥</button>':'')+'</div><div class="cm">'+(p.re||'-')+' · '+dBadge+(pt&&!tareaStr?'<div style="font-size:11px;color:var(--green);margin-top:2px">↳ '+pt.substr(0,55)+'</div>':!pt?'<div style="font-size:11px;color:var(--red);margin-top:2px">⚠ Sin proxima tarea</div>':'')+tareaStr+btnTrab+'</div><div class="cbar"><div class="cfil" style="width:'+pct+'%;background:'+col+'"></div></div></div><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span></div>';
 }
 function marcarTrabajada(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;if(!confirm('Marcar como trabajada hoy? Se limpiara la tarea programada.'))return;p.um=hoy();p.proximaTarea='';p.fechaTarea='';sv();mostrarBanner();actualizarBadge();rDash();}
-function togglePin(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pin=!p.pin;if(!p.pin){DB.pinOrder=(DB.pinOrder||[]).filter(function(x){return x!==id;});}if(_supaOK){supaSync('procesos',[procToSupa(p)]).catch(function(e){console.warn('[BMB] Error pin:',e.message);});}sv();supaGuardarPrefs();if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();mostrarBanner();actualizarBadge();}
+function togglePin(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pin=!p.pin;if(!p.pin){DB.pinOrder=DB.pinOrder.filter(function(i){return i!==id;});}sv();if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();mostrarBanner();actualizarBadge();}
 function oFoco(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;document.getElementById('mFI').innerHTML='<div class="mh"><div class="mt2">🔥 Activar Modo Foco</div><button class="bi" onclick="cM(\'mF\')">✕</button></div><div style="background:var(--foco-bg);border:1px solid var(--foco-bd);border-radius:8px;padding:12px;margin-bottom:1rem"><div style="font-weight:600;color:var(--foco-tx)">'+p.ca+'</div></div><div class="fg"><label class="fl req">Motivo del foco</label><textarea class="fc" id="foco-mot" rows="3"></textarea></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mF\')">Cancelar</button><button class="btn bf" onclick="activarFoco(\''+id+'\')">🔥 Activar Foco</button></div>';document.getElementById('mF').classList.add('open');}
 function activarFoco(id){var mot=document.getElementById('foco-mot').value.trim();if(!mot){alert('El motivo es obligatorio');return}var p=DB.procesos.find(function(x){return x.id===id;});if(p){p.foco=true;p.focoMotivo=mot;p.focoFecha=hoy();sv();}cM('mF');if(CS==='dash')rDash();else rProcLista();mostrarBanner();actualizarBadge();}
 function desactivarFoco(id){if(!confirm('Desactivar el Modo Foco?'))return;var p=DB.procesos.find(function(x){return x.id===id;});if(p){p.foco=false;delete p.focoMotivo;delete p.focoFecha;sv();}if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();mostrarBanner();actualizarBadge();}
@@ -774,7 +586,7 @@ function vProc(p){
   h+=procs.length?procs.map(function(x){return procCard(x,p.id);}).join(''):'<div style="color:var(--muted);font-size:13px">Sin gestiones</div>';h+='</div>';
   var vencs=DB.vencimientos.filter(function(vx){return vx.pid===p.id;}).sort(function(a,b){return a.f.localeCompare(b.f);});
   h+='<div id="PT-vc" class="hidden"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:13px;color:var(--muted)">Audiencias y vencimientos</div><button class="btn bp bsm" onclick="oVcP(\''+p.id+'\')">+ Nueva</button></div>';
-  h+=vencs.length?vencs.map(function(vx){var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';var badge=df<0?'<span class="iu ic">VENCIDO</span>':df<=VENC_CRIT?'<span class="iu ic">'+df+'d</span>':df<=VENC_AL?'<span class="iu ia">'+df+'d</span>':'<span class="iu io">'+df+'d</span>';var txSt=vx.r?'font-weight:400;color:var(--muted);':'font-weight:600;';return'<div class="vc-card"><div class="vc-fb" style="background:'+c2+'"><div class="vc-day">'+fF(vx.f).substr(0,2)+'</div><div class="vc-mon">'+mesAbr(vx.f)+'</div></div><div style="flex:1"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'+badge+(vx.ca2?'<span class="vc-prep">PREP</span>':'')+(vx.conf2?'<span class="vc-conf">✓ CONF</span>':'')+(vx.r?'<span style="color:var(--green);font-size:11px;font-weight:500">✓ Realizado</span>':'')+'</div><div style="font-size:14px;'+txSt+'">'+(vx.ac||'-')+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px">'+(vx.ho&&vx.ho!=='00:00'?vx.ho+'h · ':'')+(vx.re2?'Resp: '+vx.re2.split(' ').pop():'')+'</div><div style="display:flex;align-items:center;gap:6px;margin-top:6px"><label style="font-size:11px;color:var(--muted)">Fecha:</label><input type="date" id="vf-'+vx.id+'" value="'+(vx.f||'')+'" style="border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px"><button class="btn bs bsm" onclick="guardarFechaVc(\''+vx.id+'\',\''+p.id+'\')" style='display:none'>.</div></div><div style="display:flex;flex-direction:column;gap:4px">'+(!vx.r?'<button class="btn bs bsm" onclick="mVR(\''+vx.id+'\',\''+p.id+'\')">✓ Realizado</button>':'')+'<button class="btn '+(vx.conf2?'bd':'bs')+' bsm" onclick="toggleConf(\''+vx.id+'\',\''+p.id+'\')">'+( vx.conf2?'Desconf.':'📌 Confirmar')+'</button><button class="btn bs bsm" onclick="editarVcModal(\''+vx.id+'\',\''+p.id+'\')">✏️ Editar</button><button class="bi" onclick="elimVcProc(\''+vx.id+'\',\''+p.id+'\')">🗑️</button></div></div>';}).join(''):'<div style="color:var(--muted);font-size:13px">Sin vencimientos</div>';
+  h+=vencs.length?vencs.map(function(vx){var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';var badge=df<0?'<span class="iu ic">VENCIDO</span>':df<=VENC_CRIT?'<span class="iu ic">'+df+'d</span>':df<=VENC_AL?'<span class="iu ia">'+df+'d</span>':'<span class="iu io">'+df+'d</span>';var txSt=vx.r?'font-weight:400;color:var(--muted);':'font-weight:600;';return'<div class="vc-card"><div class="vc-fb" style="background:'+c2+'"><div class="vc-day">'+fF(vx.f).substr(0,2)+'</div><div class="vc-mon">'+mesAbr(vx.f)+'</div></div><div style="flex:1"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'+badge+(vx.ca2?'<span class="vc-prep">PREP</span>':'')+(vx.conf2?'<span class="vc-conf">✓ CONF</span>':'')+(vx.r?'<span style="color:var(--green);font-size:11px;font-weight:500">✓ Realizado</span>':'')+'</div><div style="font-size:14px;'+txSt+'">'+(vx.ac||'-')+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px">'+(vx.ho&&vx.ho!=='00:00'?vx.ho+'h · ':'')+(vx.re2?'Resp: '+vx.re2.split(' ').pop():'')+'</div><div style="display:flex;align-items:center;gap:6px;margin-top:6px"><label style="font-size:11px;color:var(--muted)">Fecha:</label><input type="date" id="vf-'+vx.id+'" value="'+(vx.f||'')+'" style="border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px"></div></div><div style="display:flex;flex-direction:column;gap:4px">'+(!vx.r?'<button class="btn bs bsm" onclick="mVR(\''+vx.id+'\',\''+p.id+'\')">✓ Realizado</button>':'')+'<button class="btn '+(vx.conf2?'bd':'bs')+' bsm" onclick="toggleConf(\''+vx.id+'\',\''+p.id+'\')">'+( vx.conf2?'Desconf.':'📌 Confirmar')+'</button><button class="btn bs bsm" onclick="editarVcModal(\''+vx.id+'\',\''+p.id+'\')">✏️ Editar</button><button class="bi" onclick="elimVcProc(\''+vx.id+'\',\''+p.id+'\')">🗑️</button></div></div>';}).join(''):'<div style="color:var(--muted);font-size:13px">Sin vencimientos</div>';
   h+='</div>';
   var cc2=DB.cc.filter(function(c3){return c3.pid===p.id;});var sl=cc2.reduce(function(a,c3){return a+(parseFloat(c3.hb||0)-parseFloat(c3.db||0));},0);
   h+='<div id="PT-cc" class="hidden"><div class="cs"><span>Saldo cuenta corriente</span><span style="color:'+(sl>=0?'var(--green)':'var(--red)')+'">$'+sl.toLocaleString('es-AR',{minimumFractionDigits:2})+'</span></div><div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn bp bsm" onclick="oCP(\''+p.id+'\')">+ Movimiento</button></div>';
@@ -788,7 +600,7 @@ function vProc(p){
   return h;
 }
 function guardarYCerrar(id){var p=DB.procesos.find(function(x){return x.id===id;});if(p){p.um=hoy();sv();}cM('mP');mostrarBanner();actualizarBadge();if(CS==='proc')rProcLista();else if(CS==='dash')rDash();else if(CS==='alertas')rAlertas();}
-function togglePinProc(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pin=!p.pin;if(!p.pin){DB.pinOrder=(DB.pinOrder||[]).filter(function(x){return x!==id;});}if(_supaOK){supaSync('procesos',[procToSupa(p)]).catch(function(e){console.warn('[BMB] Error pinProc:',e.message);});}sv();supaGuardarPrefs();mostrarBanner();actualizarBadge();refrPT(id,'ex');}
+function togglePinProc(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pin=!p.pin;if(!p.pin){DB.pinOrder=DB.pinOrder.filter(function(i){return i!==id;});}sv();mostrarBanner();actualizarBadge();refrPT(id,'ex');}
 function cambiarPrioridadProc(id,val){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pr=val;sv();mostrarBanner();actualizarBadge();}
 function pT(n,b){document.querySelectorAll('[id^="PT-"]').forEach(function(e){e.classList.add('hidden');});document.querySelectorAll('#PT .tbtn').forEach(function(x){x.classList.remove('active');});var e=document.getElementById('PT-'+n);if(e)e.classList.remove('hidden');if(b)b.classList.add('active');}
 function refrPT(pid,tab){var p=DB.procesos.find(function(x){return x.id===pid;});if(p){document.getElementById('mPI').innerHTML=vProc(p);setTimeout(function(){pT(tab,null);},10);}}
@@ -797,27 +609,27 @@ function guardarFechaVc(id,pid){var el=document.getElementById('vf-'+id);if(!el)
 function editarVcModal(id,pid){var vx=DB.vencimientos.find(function(x){return x.id===id;});if(!vx)return;document.getElementById('mEditVcI').innerHTML='<div class="mh"><div class="mt2">Editar audiencia o vencimiento</div><button class="bi" onclick="cM(\'mEditVc\')">✕</button></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="evc-ac" value="'+esc(vx.ac||'')+'"></div><div class="fr"><div class="fg"><label class="fl">Fecha</label><input type="date" class="fc" id="evc-f" value="'+(vx.f||'')+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="evc-h" value="'+(vx.ho||'')+'"></div></div><div class="fr"><div class="fg"><label class="fl">Responsable</label><select class="fc" id="evc-r">'+RESPONSABLES.map(function(r){return'<option value="'+r+'"'+(vx.re2===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl">Preparada?</label><select class="fc" id="evc-c"><option value="0"'+(vx.ca2?'':' selected')+'>No</option><option value="1"'+(vx.ca2?' selected':'')+'>Si</option></select></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mEditVc\')">Cancelar</button><button class="btn bp" onclick="guardarEditVc(\''+id+'\',\''+pid+'\')">Guardar</button></div>';document.getElementById('mEditVc').classList.add('open');}
 function guardarEditVc(id,pid){var vx=DB.vencimientos.find(function(x){return x.id===id;});if(!vx)return;var ac=document.getElementById('evc-ac').value.trim();if(!ac){alert('La descripcion es obligatoria');return}vx.ac=ac;vx.f=v('evc-f');vx.ho=v('evc-h');vx.re2=v('evc-r');vx.ca2=v('evc-c')==='1';sv();cM('mEditVc');if(pid&&pid!=='null')refrPT(pid,'vc');else rVenc();}
 function mVR(id,pid){var vx=DB.vencimientos.find(function(x){return x.id===id;});if(vx){vx.r=true;sv();}refrPT(pid,'vc');}
-function elimVcProc(id,pid){if(!confirm('¿Eliminar?'))return;var _vpId=id;DB.vencimientos=DB.vencimientos.filter(function(x){return x.id!==_vpId;});supaElim('vencimientos',_vpId);sv();refrPT(pid,'vc');}
+function elimVcProc(id,pid){if(!confirm('¿Eliminar?'))return;DB.vencimientos=DB.vencimientos.filter(function(x){return x.id!==id;});sv();refrPT(pid,'vc');}
 function editarTextoAg(id,pid,tipo){var a=DB.agendas.find(function(x){return x.id===id;});if(!a)return;document.getElementById('mEditTxtI').innerHTML='<div class="mh"><div class="mt2">Editar descripcion de la tarea</div><button class="bi" onclick="cM(\'mEditTxt\')">✕</button></div><div class="fg"><label class="fl req">Descripcion completa</label><textarea class="fc" id="etxt-area" rows="7" style="min-height:150px;font-size:14px;line-height:1.6">'+esc(stripHtml(a.co||''))+'</textarea></div><div style="font-size:12px;color:var(--muted);margin-bottom:1rem">Para: '+(a.resp||'-')+' · Fecha: '+fF(a.f)+'</div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn bs" onclick="cM(\'mEditTxt\')">Cancelar</button><button class="btn bp" onclick="guardarTextoAg(\''+id+'\',\''+pid+'\',\''+tipo+'\')">Guardar cambios</button></div>';document.getElementById('mEditTxt').classList.add('open');}
-function guardarTextoAg(id,pid,tipo){var a=DB.agendas.find(function(x){return x.id===id;});if(!a)return;var el=document.getElementById('etxt-area');if(!el)return;var t=el.value.trim();if(!t){alert('La descripcion no puede estar vacia');return}a.co=t;if(_supaOK){supaSync('agendas',[agToSupa(a)]).catch(function(e){console.warn('[BMB] Error guardarTextoAg:',e.message);});}sv();cM('mEditTxt');if(tipo==='ag'&&pid&&pid!=='null')refrPT(pid,'ag');else renderAgLista();}
+function guardarTextoAg(id,pid,tipo){var a=DB.agendas.find(function(x){return x.id===id;});if(!a)return;var el=document.getElementById('etxt-area');if(!el)return;var t=el.value.trim();if(!t){alert('La descripcion no puede estar vacia');return}a.co=t;sv();cM('mEditTxt');if(tipo==='ag'&&pid&&pid!=='null')refrPT(pid,'ag');else renderAgLista();}
 function editarTextoProc(id,pid){var x=DB.procuraciones.find(function(p){return p.id===id;});if(!x)return;document.getElementById('mEditTxtI').innerHTML='<div class="mh"><div class="mt2">Editar gestion de procuracion</div><button class="bi" onclick="cM(\'mEditTxt\')">✕</button></div><div class="fg"><label class="fl req">Descripcion de la gestion</label><textarea class="fc" id="etxt-co" rows="6" style="min-height:130px;font-size:14px;line-height:1.6">'+esc(x.co||'')+'</textarea></div><div class="fg"><label class="fl">Resultado / Lo actuado</label><textarea class="fc" id="etxt-res" rows="4" style="font-size:13px">'+esc(x.resultado||'')+'</textarea></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn bs" onclick="cM(\'mEditTxt\')">Cancelar</button><button class="btn bp" onclick="guardarTextoProc(\''+id+'\',\''+pid+'\')">Guardar cambios</button></div>';document.getElementById('mEditTxt').classList.add('open');}
 function guardarTextoProc(id,pid){var x=DB.procuraciones.find(function(p){return p.id===id;});if(!x)return;var co=document.getElementById('etxt-co');var res=document.getElementById('etxt-res');if(co&&co.value.trim())x.co=co.value.trim();if(res)x.resultado=res.value;sv();cM('mEditTxt');if(pid&&pid!=='null')refrPT(pid,'proc');else renderProcLista();}
 function crearEditorNota(id,html){return'<div class="nota-toolbar"><button type="button" class="nota-btn" onclick="fmtNota(\'bold\')"><b>B</b></button><button type="button" class="nota-btn" onclick="fmtNota(\'italic\')"><i>I</i></button><button type="button" class="nota-btn" onclick="fmtNota(\'underline\')"><u>U</u></button><div class="nota-sep"></div><button type="button" class="nota-btn" onclick="fmtNota(\'fontSize\',\'1\')" style="font-size:10px">A</button><button type="button" class="nota-btn" onclick="fmtNota(\'fontSize\',\'3\')" style="font-size:13px">A</button><button type="button" class="nota-btn" onclick="fmtNota(\'fontSize\',\'5\')" style="font-size:17px">A</button><div class="nota-sep"></div><button type="button" class="nota-btn" onclick="fmtNota(\'removeFormat\')" style="font-size:11px">✖</button></div><div class="nota-editor" id="'+id+'" contenteditable="true">'+(html||'')+'</div>';}
 function fmtNota(cmd,val){document.execCommand(cmd,false,val||null);}
 function getNota(id){var el=document.getElementById(id);return el?el.innerHTML:'';}
 function agCard(a,pid,tipo){var bid='blq-'+a.id;var txSt=a.he?'font-weight:400;color:var(--muted);':'font-weight:700;';var tieneNota=a.nota&&a.nota.replace(/<[^>]*>/g,'').trim().length>0;var notaBtnSt=tieneNota?'background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700':'';var confBadge=a.conf?'<span style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;border-radius:4px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px">🔒 CONF.</span>':'';return'<div class="ag-card" style="'+(a.conf?'border-left:3px solid #991B1B':'')+'"><div class="ag-hd"><div class="ag-chk'+(a.he?' done':'')+'" onclick="toggleAgReal(\''+a.id+'\',\''+pid+'\',\''+tipo+'\')">'+(a.he?'✓':'')+'</div><div style="min-width:80px;flex-shrink:0"><input type="date" value="'+(a.f||'')+'" onchange="cambiarFechaAg(\''+a.id+'\',this.value)" style="border:1px solid var(--border);border-radius:5px;font-size:11px;padding:3px 5px;color:var(--muted);background:#f8f9fa;width:100%">'+(a.ho&&a.ho!=='00:00'?'<div style="font-size:10px;color:var(--muted);margin-top:2px;text-align:center">'+a.ho+'h</div>':'')+'</div><div style="flex:1;min-width:0;cursor:pointer" onclick="tglBloc(\''+bid+'\')"><div style="font-size:13px;'+txSt+' line-height:1.5;word-break:break-word">'+(stripHtml(a.co)||'-')+confBadge+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Para: '+(a.resp||'-')+(a.he?' · <span style="color:var(--green);font-weight:500">✓ Realizado el '+fF(a.fReal||a.f)+'</span>':'')+'</div></div><div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-left:6px"><span class="ag-tg" onclick="tglBloc(\''+bid+'\')" style="'+notaBtnSt+'">'+(tieneNota?'📝':'')+'Notas ▼</span><button class="btn bs bsm" onclick="editarTextoAg(\''+a.id+'\',\''+pid+'\',\''+tipo+'\')" style="font-size:10px;padding:2px 8px">✏️</button><button class="bi" onclick="elimAgConf(\''+a.id+'\',\''+pid+'\',\''+tipo+'\')" title="Eliminar">🗑️</button></div></div><div class="ag-no hidden" id="'+bid+'">'+crearEditorNota('nota-ed-'+a.id,a.nota||'')+'<div style="display:flex;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)"><button class="btn bp bsm" onclick="guardarNota(\''+a.id+'\',\'nota-ed-'+a.id+'\',\''+bid+'\')">💾 Guardar nota</button></div></div></div>';}
-function elimAgConf(id,pid,tipo){if(!confirm('¿Eliminar esta tarea?'))return;var _eId=id;DB.agendas=DB.agendas.filter(function(x){return x.id!==_eId;});supaElim('agendas',_eId);sv();mostrarBanner();actualizarBadge();if(pid&&pid!=='null')refrPT(pid,'ag');else renderAgLista();}
-function toggleAgReal(id,pid,tipo){var a=DB.agendas.find(function(x){return x.id===id;});if(!a)return;a.he=!a.he;if(a.he)a.fReal=hoy();else delete a.fReal;if(_supaOK){supaSync('agendas',[agToSupa(a)]).catch(function(e){console.warn('[BMB] Error toggleAgReal:',e.message);});}sv();mostrarBanner();actualizarBadge();if(pid&&pid!=='null')refrPT(pid,'ag');else renderAgLista();}
+function elimAgConf(id,pid,tipo){if(!confirm('¿Eliminar esta tarea?'))return;DB.agendas=DB.agendas.filter(function(x){return x.id!==id;});sv();mostrarBanner();actualizarBadge();if(pid&&pid!=='null')refrPT(pid,'ag');else renderAgLista();}
+function toggleAgReal(id,pid,tipo){var a=DB.agendas.find(function(x){return x.id===id;});if(!a)return;a.he=!a.he;if(a.he)a.fReal=hoy();else delete a.fReal;sv();mostrarBanner();actualizarBadge();if(pid&&pid!=='null')refrPT(pid,'ag');else renderAgLista();}
 function guardarNota(id,eid,bid){var a=DB.agendas.find(function(x){return x.id===id;});var el=document.getElementById(eid);if(a&&el){a.nota=el.innerHTML;sv();}var blq=document.getElementById(bid);if(blq)blq.classList.add('hidden');}
 function cambiarFechaAg(id,f){var a=DB.agendas.find(function(x){return x.id===id;});if(a&&f){a.f=f;sv();mostrarBanner();actualizarBadge();}}
 function tglBloc(id){var e=document.getElementById(id);if(e)e.classList.toggle('hidden');}
 function procCard(x,pid){var txSt=x.realizada?'font-weight:400;color:var(--muted);':'font-weight:700;';return'<div class="proc-item"><div class="proc-hd"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--navy)"><input type="date" value="'+(x.f||'')+'" onchange="cambiarFechaProc(\''+x.id+'\',this.value)" style="border:1px solid var(--border);border-radius:5px;font-size:11px;padding:3px 5px;color:var(--navy);background:#f8f9fa;margin-right:8px">'+(x.lugar?'<span style="font-weight:400;color:var(--muted)">'+x.lugar+'</span>':'')+'</div><div style="font-size:13px;margin-top:4px;line-height:1.5;'+txSt+'">'+(x.co||'-')+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px">Resp: '+(x.re2||'-')+(x.realizada?' · <span style="color:var(--green);font-weight:500">✓ Realizado el '+fF(x.fReal)+'</span>':'')+'</div></div><div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-left:10px"><button class="btn bs bsm" onclick="editarTextoProc(\''+x.id+'\',\''+pid+'\')">✏️ Ver/Editar</button>'+(!x.realizada?'<button class="btn bp bsm" onclick="marcarProc(\''+x.id+'\',\''+pid+'\')">✓ Realizado</button>':'<button class="btn bd bsm" onclick="revertirProc(\''+x.id+'\',\''+pid+'\')">↩ Revertir</button>')+'<button class="bi" onclick="elimProcConf(\''+x.id+'\',\''+pid+'\')" title="Eliminar">🗑️</button></div></div></div>';}
 function marcarProc(id,pid){var x=DB.procuraciones.find(function(p){return p.id===id;});if(x){x.realizada=true;x.fReal=hoy();var p=DB.procesos.find(function(q){return q.id===pid;});if(p){p.um=hoy();sv();}}sv();refrPT(pid,'proc');mostrarBanner();actualizarBadge();}
 function revertirProc(id,pid){if(!confirm('Revertir a estado PENDIENTE?'))return;var x=DB.procuraciones.find(function(p){return p.id===id;});if(x){x.realizada=false;delete x.fReal;sv();}refrPT(pid,'proc');}
-function elimProcConf(id,pid){if(!confirm('¿Eliminar esta gestion?'))return;var _pId=id;DB.procuraciones=DB.procuraciones.filter(function(x){return x.id!==_pId;});supaElim('procuraciones',_pId);sv();if(pid&&pid!=='null')refrPT(pid,'proc');else renderProcLista();}
+function elimProcConf(id,pid){if(!confirm('¿Eliminar esta gestion?'))return;DB.procuraciones=DB.procuraciones.filter(function(x){return x.id!==id;});sv();if(pid&&pid!=='null')refrPT(pid,'proc');else renderProcLista();}
 function cambiarFechaProc(id,f){var x=DB.procuraciones.find(function(p){return p.id===id;});if(x&&f){x.f=f;sv();}}
-function oAgP(pid){var _p=DB.procesos.find(function(x){return x.id===pid;});var fh=_p?fechaSugeridaPorPrioridad(_p.pr,_p.pin):proxFechaHabil();var confCheck=CU.rol==='admin'?'<div class="fg" style="margin-top:8px"><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="ag-conf" style="width:16px;height:16px"> <span style="color:#991B1B;font-weight:600">🔒 Marcar como CONFIDENCIAL (solo visible para el administrador)</span></label></div>':'';var h='<div class="mh"><div class="mt2">Nueva tarea</div><button class="bi" onclick="cM(\'mAg\')">✕</button></div><div class="fr"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="ag-f" value="'+fh+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="ag-h"></div></div><div class="fg"><label class="fl">Para (responsable)</label><select class="fc" id="ag-r">'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="ag-c-txt" placeholder="Descripcion de la tarea..."></div><div class="fg"><label class="fl">Notas (con formato)</label>'+crearEditorNota('ag-nota-new','')+'</div>'+confCheck+'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mAg\')">Cancelar</button><button class="btn bp" onclick="gAg(\''+pid+'\')">Guardar</button></div>';document.getElementById('mAgI').innerHTML=h;document.getElementById('mAg').classList.add('open');}
-function gAg(pid){var c=document.getElementById('ag-c-txt').value.trim();if(!c){alert('La descripcion es obligatoria');return}var resp=v('ag-r');var fecha=v('ag-f');if(!validarLimiteTareas(resp,fecha))return;var conf=CU.rol==='admin'&&document.getElementById('ag-conf')&&document.getElementById('ag-conf').checked;var _naid=uid();if(!_idsSupa['agendas'])_idsSupa['agendas']={};_idsSupa['agendas'][_naid]=false;DB.agendas.push({id:_naid,pid:pid,resp:resp,f:fecha,ho:v('ag-h'),co:c,nota:getNota('ag-nota-new'),he:false,conf:conf||false});sv();cM('mAg');mostrarBanner();actualizarBadge();refrPT(pid,'ag');}
+function oAgP(pid){var _pr=DB.procesos.find(function(x){return x.id===pid;});var _dias=(_pr&&_pr.pin)?7:(_pr&&_pr.pr==='alta')?7:(_pr&&_pr.pr==='baja')?25:15;var _fd=new Date();_fd.setDate(_fd.getDate()+_dias);var _fds=_fd.toISOString().split('T')[0];var fh=proxFechaHabil(_fds);var confCheck=CU.rol==='admin'?'<div class="fg" style="margin-top:8px"><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="ag-conf" style="width:16px;height:16px"> <span style="color:#991B1B;font-weight:600">🔒 Marcar como CONFIDENCIAL (solo visible para el administrador)</span></label></div>':'';var h='<div class="mh"><div class="mt2">Nueva tarea</div><button class="bi" onclick="cM(\'mAg\')">✕</button></div><div class="fr"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="ag-f" value="'+fh+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="ag-h"></div></div><div class="fg"><label class="fl">Para (responsable)</label><select class="fc" id="ag-r">'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="ag-c-txt" placeholder="Descripcion de la tarea..."></div><div class="fg"><label class="fl">Notas (con formato)</label>'+crearEditorNota('ag-nota-new','')+'</div>'+confCheck+'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mAg\')">Cancelar</button><button class="btn bp" onclick="gAg(\''+pid+'\')">Guardar</button></div>';document.getElementById('mAgI').innerHTML=h;document.getElementById('mAg').classList.add('open');}
+function gAg(pid){var c=document.getElementById('ag-c-txt').value.trim();if(!c){alert('La descripcion es obligatoria');return}var resp=v('ag-r');var fecha=v('ag-f');if(!validarLimiteTareas(resp,fecha))return;var conf=CU.rol==='admin'&&document.getElementById('ag-conf')&&document.getElementById('ag-conf').checked;DB.agendas.push({id:uid(),pid:pid,resp:resp,f:fecha,ho:v('ag-h'),co:c,nota:getNota('ag-nota-new'),he:false,conf:conf||false});sv();cM('mAg');mostrarBanner();actualizarBadge();refrPT(pid,'ag');}
 function oProcP(pid){var h='<div class="mh"><div class="mt2">Nueva gestion de procuracion</div><button class="bi" onclick="cM(\'mPr\')">✕</button></div><div class="fr"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="pr-f" value="'+hoy()+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="pr-h"></div></div><div class="fg"><label class="fl">Lugar / Organismo</label><input class="fc" id="pr-l"></div><div class="fg"><label class="fl req">Descripcion</label><textarea class="fc" id="pr-c" rows="3"></textarea></div><div class="fr"><div class="fg"><label class="fl">Responsable</label><select class="fc" id="pr-r">'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl">Fecha limite</label><input type="date" class="fc" id="pr-fl"></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mPr\')">Cancelar</button><button class="btn bp" onclick="gProc2(\''+pid+'\')">Guardar</button></div>';document.getElementById('mPrI').innerHTML=h;document.getElementById('mPr').classList.add('open');}
 function gProc2(pid){var c=document.getElementById('pr-c').value.trim();if(!c){alert('La descripcion es obligatoria');return}DB.procuraciones.push({id:uid(),pid:pid,f:v('pr-f'),ho:v('pr-h'),lugar:document.getElementById('pr-l').value,co:c,re2:v('pr-r'),fLim:v('pr-fl'),realizada:false});sv();cM('mPr');refrPT(pid,'proc');}
 function oVcP(pid){var h='<div class="mh"><div class="mt2">Nueva audiencia / vencimiento</div><button class="bi" onclick="cM(\'mVc\')">✕</button></div><div class="fr"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="vc-f" value="'+hoy()+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="vc-h"></div></div><div class="fg"><label class="fl req">Descripcion</label><select class="fc" id="vc-tipo" onchange="document.getElementById(\'vc-a\').value=this.value"><option value="">Seleccione tipo...</option><option>Audiencia de vista de causa</option><option>Audiencia art. 51 CPL</option><option>Audiencia de conciliacion</option><option>Junta medica SRT</option><option>Junta medica pericial</option><option>Audiencia Ministerio de Trabajo</option><option>Pericia medica</option><option>Vencimiento procesal</option><option>Otro vencimiento</option></select><input class="fc" id="vc-a" style="margin-top:6px" placeholder="O escriba la descripcion..."></div><div class="fr"><div class="fg"><label class="fl">Responsable</label><select class="fc" id="vc-r">'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl">Preparada?</label><select class="fc" id="vc-c"><option value="0">No</option><option value="1">Si — Preparada</option></select></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mVc\')">Cancelar</button><button class="btn bp" onclick="gVc(\''+pid+'\')">Guardar</button></div>';document.getElementById('mVcI').innerHTML=h;document.getElementById('mVc').classList.add('open');}
@@ -847,7 +659,7 @@ function renderAgLista(){
   if(!ag.length){el.innerHTML='<div class="cd"><div style="padding:2rem;text-align:center;color:var(--muted)">Sin registros</div></div>';return;}
   el.innerHTML=ag.map(function(a){var p=DB.procesos.find(function(x){return x.id===a.pid;});var bid='gbg-'+a.id;var priBadge=p?'<span class="pr '+pC(p.pr||'media')+'" style="font-size:10px;padding:1px 7px;margin-left:6px">'+pL(p.pr||'media')+'</span>':'';return'<div style="background:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden"><div style="padding:8px 14px;background:#f8f9fa;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px"><strong style="font-size:13px;color:var(--navy);cursor:pointer" onclick="aP(\''+(p?p.id:'')+'\')">'+( p?p.ca:'Sin expediente')+'</strong>'+priBadge+'</div><div class="ag-hd"><div class="ag-chk'+(a.he?' done':'')+'" onclick="toggleAgReal(\''+a.id+'\',null,\'global\')">'+(a.he?'✓':'')+'</div><div style="min-width:80px;flex-shrink:0"><input type="date" value="'+(a.f||'')+'" onchange="cambiarFechaAg(\''+a.id+'\',this.value)" style="border:1px solid var(--border);border-radius:5px;font-size:11px;padding:3px 5px;color:var(--muted);background:#f8f9fa;width:100%"></div><div style="flex:1;min-width:0;cursor:pointer" onclick="tglBloc(\''+bid+'\')"><div style="font-size:13px;'+(a.he?'text-decoration:line-through;color:var(--muted);':'font-weight:700;')+' line-height:1.5">'+(stripHtml(a.co)||'-')+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Para: '+(a.resp||'-')+(a.he?' · <span style="color:var(--green)">✓ Realizado</span>':'')+'</div></div><div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-left:6px"><span class="ag-tg" onclick="tglBloc(\''+bid+'\')">Notas ▼</span><button class="btn bs bsm" onclick="editarTextoAg(\''+a.id+'\',null,\'global\')" style="font-size:10px;padding:2px 8px">✏️</button><button class="bi" onclick="elimAgConf(\''+a.id+'\',null,\'global\')" title="Eliminar">🗑️</button></div></div><div class="ag-no hidden" id="'+bid+'">'+crearEditorNota('nota-ed-g-'+a.id,a.nota||'')+'<div style="display:flex;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)"><button class="btn bp bsm" onclick="guardarNota(\''+a.id+'\',\'nota-ed-g-'+a.id+'\',\''+bid+'\')">💾 Guardar nota</button></div></div></div>';}).join('');
 }
-function oAgGlobal(){var fh=proxFechaHabil();var h='<div class="mh"><div class="mt2">Nueva tarea</div><button class="bi" onclick="cM(\'mAg2\')">✕</button></div><div class="fg"><label class="fl">Expediente</label><select class="fc" id="ag-proc"><option value="">Sin expediente</option>'+DB.procesos.filter(function(p){return!p.ar;}).sort(function(a,b){return a.ca.localeCompare(b.ca);}).map(function(p){return'<option value="'+p.id+'">'+p.ca.substr(0,55)+'</option>';}).join('')+'</select></div><div class="fr"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="ag-f" value="'+fh+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="ag-h"></div></div><div class="fg"><label class="fl">Para (responsable)</label><select class="fc" id="ag-r">'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="ag-c-g"></div><div class="fg"><label class="fl">Notas (con formato)</label>'+crearEditorNota('ag-nota-g','')+'</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mAg2\')">Cancelar</button><button class="btn bp" onclick="gAgG()">Guardar</button></div>';document.getElementById('mAg2I').innerHTML=h;document.getElementById('mAg2').classList.add('open');}
+function oAgGlobal(){var _fd2=new Date();_fd2.setDate(_fd2.getDate()+15);var fh=proxFechaHabil(_fd2.toISOString().split('T')[0]);var h='<div class="mh"><div class="mt2">Nueva tarea</div><button class="bi" onclick="cM(\'mAg2\')">✕</button></div><div class="fg"><label class="fl">Expediente</label><select class="fc" id="ag-proc"><option value="">Sin expediente</option>'+DB.procesos.filter(function(p){return!p.ar;}).sort(function(a,b){return a.ca.localeCompare(b.ca);}).map(function(p){return'<option value="'+p.id+'">'+p.ca.substr(0,55)+'</option>';}).join('')+'</select></div><div class="fr"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="ag-f" value="'+fh+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="ag-h"></div></div><div class="fg"><label class="fl">Para (responsable)</label><select class="fc" id="ag-r">'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="ag-c-g"></div><div class="fg"><label class="fl">Notas (con formato)</label>'+crearEditorNota('ag-nota-g','')+'</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mAg2\')">Cancelar</button><button class="btn bp" onclick="gAgG()">Guardar</button></div>';document.getElementById('mAg2I').innerHTML=h;document.getElementById('mAg2').classList.add('open');}
 function gAgG(){var c=document.getElementById('ag-c-g').value.trim();if(!c){alert('Descripcion obligatoria');return}var resp=v('ag-r');var fecha=v('ag-f');if(!validarLimiteTareas(resp,fecha))return;var conf=CU.rol==='admin'&&document.getElementById('ag-conf-g')&&document.getElementById('ag-conf-g').checked;DB.agendas.push({id:uid(),pid:v('ag-proc'),resp:resp,f:fecha,ho:v('ag-h'),co:c,nota:getNota('ag-nota-g'),he:false,conf:conf||false});sv();cM('mAg2');mostrarBanner();actualizarBadge();rAgenda();}
 function rProcuracion(){var h='<div class="fb"><select id="pr-fh" onchange="renderProcLista()"><option value="">Todas</option><option value="0">Solo pendientes</option><option value="1">Solo realizadas</option></select>';if(CU.rol==='admin')h+='<select id="pr-fr" onchange="renderProcLista()"><option value="">Todos los responsables</option>'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select>';h+='<input type="date" id="pr-fd1" onchange="renderProcLista()" title="Desde"><input type="date" id="pr-fd2" onchange="renderProcLista()" title="Hasta"><button class="btn bp bsm" onclick="oProcGlobal()">+ Nueva</button><button class="btn bs bsm" onclick="genPrevProcuracion(null)">🖨️</button></div><div id="proc-lista"></div>';document.getElementById('MC').innerHTML=h;renderProcLista();}
 function renderProcLista(){
@@ -881,7 +693,7 @@ function rVenc(){
 function guardarFechaVcG(id){var el=document.getElementById('gvf-'+id);if(!el)return;var f=el.value;if(!f){alert('Seleccione fecha valida');return}var vx=DB.vencimientos.find(function(x){return x.id===id;});if(vx){vx.f=f;sv();rVenc();}}
 function toggleConfG(id){var vx=DB.vencimientos.find(function(x){return x.id===id;});if(!vx)return;vx.conf2=!vx.conf2;sv();rVenc();}
 function mVRG(id){var vx=DB.vencimientos.find(function(x){return x.id===id;});if(vx){vx.r=true;sv();}rVenc();}
-function elimVcConf(id){if(!confirm('¿Eliminar esta audiencia o vencimiento?'))return;var _vId=id;DB.vencimientos=DB.vencimientos.filter(function(x){return x.id!==_vId;});supaElim('vencimientos',_vId);sv();rVenc();}
+function elimVcConf(id){if(!confirm('¿Eliminar esta audiencia o vencimiento?'))return;DB.vencimientos=DB.vencimientos.filter(function(x){return x.id!==id;});sv();rVenc();}
 function oVGlobal(){var h='<div class="mh"><div class="mt2">Nueva audiencia / vencimiento</div><button class="bi" onclick="cM(\'mVc2\')">✕</button></div><div class="fg"><label class="fl">Expediente</label><select class="fc" id="vc-proc"><option value="">Sin expediente</option>'+DB.procesos.filter(function(p){return!p.ar;}).sort(function(a,b){return a.ca.localeCompare(b.ca);}).map(function(p){return'<option value="'+p.id+'">'+p.ca.substr(0,55)+'</option>';}).join('')+'</select></div><div class="fr"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="vc-f" value="'+hoy()+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="vc-h"></div></div><div class="fg"><label class="fl req">Descripcion</label><select class="fc" id="vc-tipo2" onchange="document.getElementById(\'vc-a\').value=this.value"><option value="">Seleccione...</option><option>Audiencia de vista de causa</option><option>Audiencia art. 51 CPL</option><option>Audiencia de conciliacion</option><option>Junta medica SRT</option><option>Junta medica pericial</option><option>Audiencia Ministerio de Trabajo</option><option>Pericia medica</option><option>Vencimiento procesal</option></select><input class="fc" id="vc-a" style="margin-top:6px" placeholder="O escriba la descripcion..."></div><div class="fr"><div class="fg"><label class="fl">Responsable</label><select class="fc" id="vc-r">'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl">Preparada?</label><select class="fc" id="vc-c"><option value="0">No</option><option value="1">Si — Preparada</option></select></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mVc2\')">Cancelar</button><button class="btn bp" onclick="gVG()">Guardar</button></div>';document.getElementById('mVc2I').innerHTML=h;document.getElementById('mVc2').classList.add('open');}
 function gVG(){var a=document.getElementById('vc-a').value.trim();if(!a){alert('Actividad obligatoria');return}DB.vencimientos.push({id:uid(),pid:v('vc-proc'),f:v('vc-f'),ho:v('vc-h'),ac:a,re2:v('vc-r'),ca2:v('vc-c')==='1',r:false,conf2:false});sv();cM('mVc2');mostrarBanner();rVenc();}
 function rInterv(){var h='<div class="fb"><input type="text" id="iv-fb" placeholder="Buscar nombre, DNI..." oninput="renderIntervLista()" style="min-width:220px"><button class="btn bp bsm" onclick="oNI()">+ Nuevo</button></div><div id="iv-lista"></div>';document.getElementById('MC').innerHTML=h;renderIntervLista();}
@@ -914,7 +726,7 @@ function rAlertas(){
   lista.forEach(function(p,idx){var iv=p._i;var pt=textoPA(p);h+='<tr><td>'+iuoEl(iv,p.foco,p.pin)+'</td><td><span class="tl" onclick="aP(\''+p.id+'\')">'+p.ca.substr(0,35)+'</span>'+((iv==='C'||iv==='A')&&p.proximaTarea?'<br><span style="font-size:11px;color:#7C3AED;font-style:italic">&#8220;'+esc(p.proximaTarea.substr(0,35))+'&#8221;</span>':'')+'</td><td style="font-size:12px">'+(pt?pt.substr(0,40):'<span style="color:var(--red)">Sin asignar</span>')+'</td><td><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span></td><td style="font-size:12px">'+(p.re||'-').split(' ').pop()+'</td><td style="white-space:nowrap"><button class="bi" onclick="alMover(\''+p.id+'\',-1,\''+fra+'\')" '+(idx===0?'disabled':'')+'style="padding:1px 4px">↑</button><button class="bi" onclick="alMover(\''+p.id+'\',1,\''+fra+'\')" '+(idx===lista.length-1?'disabled':'')+'style="padding:1px 4px">↓</button></td><td><button class="btn bs bsm" onclick="aP(\''+p.id+'\')">Abrir</button></td></tr>';});
   h+='</tbody></table></div>';document.getElementById('MC').innerHTML=h;
 }
-function alMover(id,dir,fra){if(!DB.alOrder)DB.alOrder=[];var todos2=procVisibles();todos2.forEach(function(p){p._i=calcIUO(p);});var lista2=todos2.sort(function(a,b){var pinA=a.pin?0:1,pinB=b.pin?0:1;if(pinA!==pinB)return pinA-pinB;var focA=a.foco?0:1,focB=b.foco?0:1;if(focA!==focB)return focA-focB;var oa2=DB.alOrder.indexOf(a.id),ob2=DB.alOrder.indexOf(b.id);if(oa2>=0&&ob2>=0)return oa2-ob2;var prA=pOrd(a.pr||'media'),prB=pOrd(b.pr||'media');if(prA!==prB)return prA-prB;return a.ca.localeCompare(b.ca);}).filter(function(p){if(fra&&p.re!==fra)return false;return true;});var ids2=lista2.map(function(p){return p.id;});var idx2=ids2.indexOf(id);if(idx2<0)return;var nuevo=idx2+dir;if(nuevo<0||nuevo>=ids2.length)return;var tmp=ids2[idx2];ids2[idx2]=ids2[nuevo];ids2[nuevo]=tmp;DB.alOrder=ids2;sv();supaGuardarPrefs();rAlertas();}
+function alMover(id,dir,fra){if(!DB.alOrder)DB.alOrder=[];var todos2=procVisibles();todos2.forEach(function(p){p._i=calcIUO(p);});var lista2=todos2.sort(function(a,b){var pinA=a.pin?0:1,pinB=b.pin?0:1;if(pinA!==pinB)return pinA-pinB;var focA=a.foco?0:1,focB=b.foco?0:1;if(focA!==focB)return focA-focB;var oa2=DB.alOrder.indexOf(a.id),ob2=DB.alOrder.indexOf(b.id);if(oa2>=0&&ob2>=0)return oa2-ob2;var prA=pOrd(a.pr||'media'),prB=pOrd(b.pr||'media');if(prA!==prB)return prA-prB;return a.ca.localeCompare(b.ca);}).filter(function(p){if(fra&&p.re!==fra)return false;return true;});var ids2=lista2.map(function(p){return p.id;});var idx2=ids2.indexOf(id);if(idx2<0)return;var nuevo=idx2+dir;if(nuevo<0||nuevo>=ids2.length)return;var tmp=ids2[idx2];ids2[idx2]=ids2[nuevo];ids2[nuevo]=tmp;DB.alOrder=ids2;sv();rAlertas();}
 function rReportes(){var h='<div class="cd"><div class="ch"><span class="ctl">Generar reportes</span></div><div style="padding:1.5rem"><div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#1D4ED8">Los reportes permiten editar datos. Los cambios se guardan en todo el sistema.</div><div class="fr3" style="margin-bottom:1rem"><div class="fg"><label class="fl">Responsable</label><select class="fc" id="rep-r"><option value="">Todos</option>'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl">Desde</label><input type="date" class="fc" id="rep-d1"></div><div class="fg"><label class="fl">Hasta</label><input type="date" class="fc" id="rep-d2"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">';[{t:'📁 Listado de procesos activos',fn:'genPrevListado()'},{t:'🏛️ Procuracion pendiente',fn:'genPrevProcuracion(null)'},{t:'⏰ Audiencias y vencimientos',fn:'genPrevAudiencias()'},{t:'📅 Tareas por periodo',fn:'genPrevAgenda()'},{t:'🚨 Causas criticas y urgencia',fn:'genRepEspecial(\'criticas\')'},{t:'⚠️ Sin proxima tarea',fn:'genRepEspecial(\'sinaccion\')'},{t:'📄 Informe semanal',fn:'genRepEspecial(\'semanal\')'},{t:'📄 Informe mensual',fn:'genRepEspecial(\'mensual\')'}].forEach(function(b){h+='<button class="btn bs" style="padding:1rem;font-size:13px;text-align:left" onclick="'+b.fn+'">'+b.t+'</button>';});h+='</div></div></div><div id="rep-preview-zone"></div>';document.getElementById('MC').innerHTML=h;}
 function getRF(){return v('rep-r')||'';}function getFechas(){return{d1:v('rep-d1'),d2:v('rep-d2')};}
 var PCSS='body{font-family:system-ui,-apple-system,sans-serif;padding:1.5rem;color:#1a2535;max-width:1100px;margin:0 auto}.rep-bloque{border:1px solid #d0d8e4;border-radius:6px;margin-bottom:10px;overflow:hidden;page-break-inside:avoid}.rep-bloque-head{background:#1A4B8C;color:#fff;padding:7px 12px;font-weight:700;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.rep-bloque-sub{font-size:10px;color:#4a5568;padding:4px 12px;background:#f4f6fa;border-bottom:1px solid #e2e8f0}.rep-bloque-body{padding:7px 12px;font-size:11px;color:#1a2535}.rep-bloque-res{border-top:1px solid #e2e8f0;padding:7px 12px;min-height:36px;font-size:11px;background:#fafbfc}.badge-crit{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:600;display:inline-block;-webkit-print-color-adjust:exact;print-color-adjust:exact}.badge-alert{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:600;display:inline-block;-webkit-print-color-adjust:exact;print-color-adjust:exact}.badge-ok{background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:600;display:inline-block;-webkit-print-color-adjust:exact;print-color-adjust:exact}.badge-pri-a{background:#FEE2E2;color:#991B1B;border-radius:20px;padding:1px 8px;font-size:10px;display:inline-block}.badge-pri-m{background:#FEF3C7;color:#92400E;border-radius:20px;padding:1px 8px;font-size:10px;display:inline-block}.badge-pri-b{background:#ECFDF5;color:#065F46;border-radius:20px;padding:1px 8px;font-size:10px;display:inline-block}.cab{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:3px solid #C9A84C}.logo{font-size:28px;font-weight:700;color:#0F1B2D}h2{color:#1A4B8C;margin:1rem 0 .5rem;border-bottom:2px solid #C9A84C;padding-bottom:4px;font-size:14px;-webkit-print-color-adjust:exact;print-color-adjust:exact}h3{color:#4a5568;margin:.75rem 0 .4rem;font-size:12px}@media print{body{padding:.5rem}}';
@@ -986,11 +798,11 @@ function lorActCard(a){return'<div class="lor-act-card"><div style="min-width:58
 function lorTab(tab,btn){document.querySelectorAll('#LTB .tbtn').forEach(function(x){x.classList.remove('active');});if(btn)btn.classList.add('active');var r=document.getElementById('lor-reintegros');var a=document.getElementById('lor-agenda');if(r)r.classList.toggle('hidden',tab!=='reintegros');if(a)a.classList.toggle('hidden',tab!=='agenda');}
 function filtrarLorAgenda(){var cat=v('lor-cat-filter');var lp=DB.lorAgenda.filter(function(a){return!a.he&&a.f>=hoy()&&(!cat||a.cat===cat);}).sort(function(a,b){return a.f.localeCompare(b.f);});var lpa=DB.lorAgenda.filter(function(a){return(a.he||(a.f<hoy()))&&(!cat||a.cat===cat);}).sort(function(a,b){return b.f.localeCompare(a.f);}).slice(0,20);var elP=document.getElementById('lor-lista-prox');var elPa=document.getElementById('lor-lista-pas');if(elP)elP.innerHTML=lp.length?lp.map(lorActCard).join(''):'<div style="color:var(--muted);font-size:13px">Sin actividades</div>';if(elPa)elPa.innerHTML=lpa.length?lpa.map(lorActCard).join(''):'<div style="color:var(--muted);font-size:13px">Sin actividades anteriores</div>';}
 function oLorActNew(){document.getElementById('mLorActI').innerHTML='<div class="mh"><div class="mt2">💙 Nueva actividad de Lorenzo</div><button class="bi" onclick="cM(\'mLorAct\')">✕</button></div><div class="fr3"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="la-f" value="'+hoy()+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="la-h"></div><div class="fg"><label class="fl req">Categoria</label><select class="fc" id="la-cat">'+LOR_CATS.map(function(c){return'<option>'+c+'</option>';}).join('')+'</select></div></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="la-tit" placeholder="Ej: Turno con la fonoaudiologa..."></div><div class="fg"><label class="fl">Notas adicionales</label><textarea class="fc" id="la-nota" rows="2"></textarea></div><div style="background:#EDE9FE;border:1px solid #DDD6FE;border-radius:8px;padding:10px;font-size:12px;color:#5B21B6;margin-bottom:1rem">Al configurar la integracion con Google Calendar, los recordatorios se enviaran al calendario compartido con Gabriela.</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mLorAct\')">Cancelar</button><button class="btn blor" onclick="gLorAct()">Guardar actividad</button></div>';document.getElementById('mLorAct').classList.add('open');}
-function gLorAct(){var tit=document.getElementById('la-tit').value.trim();if(!tit){alert('La descripcion es obligatoria');return}var _nid=uid();if(!_idsSupa['lor_agenda'])_idsSupa['lor_agenda']={};_idsSupa['lor_agenda'][_nid]=false;DB.lorAgenda.push({id:_nid,f:v('la-f'),hora:v('la-h'),cat:v('la-cat'),tit:tit,nota:document.getElementById('la-nota').value,he:false});sv();cM('mLorAct');rLorenzo();setTimeout(function(){var b=document.querySelectorAll('#LTB .tbtn');if(b&&b[1])lorTab('agenda',b[1]);},80);}
-function marcarLorAct(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(a){a.he=true;a.fReal=hoy();if(_supaOK){supaSync('lor_agenda',[{id:a.id,f:a.f||null,ho:a.hora||null,co:a.tit||null,nota:a.nota||null,he:true,freal:a.fReal||null}]).catch(function(e){console.warn('[BMB] Error marcarLorAct:',e.message);});}sv();}rLorenzo();setTimeout(function(){var b=document.querySelectorAll('#LTB .tbtn');if(b&&b[1])lorTab('agenda',b[1]);},80);}
+function gLorAct(){var tit=document.getElementById('la-tit').value.trim();if(!tit){alert('La descripcion es obligatoria');return}DB.lorAgenda.push({id:uid(),f:v('la-f'),hora:v('la-h'),cat:v('la-cat'),tit:tit,nota:document.getElementById('la-nota').value,he:false});sv();cM('mLorAct');var btnAg=document.querySelectorAll('#LTB .tbtn');if(btnAg&&btnAg[1]){lorTab('agenda',btnAg[1]);}else{rLorenzo();}}
+function marcarLorAct(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(a){a.he=true;a.fReal=hoy();sv();}rLorenzo();}
 function editarLorAct(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(!a)return;document.getElementById('mLorActI').innerHTML='<div class="mh"><div class="mt2">Editar actividad de Lorenzo</div><button class="bi" onclick="cM(\'mLorAct\')">✕</button></div><div class="fr3"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="la-f" value="'+(a.f||hoy())+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="la-h" value="'+(a.hora||'')+'"></div><div class="fg"><label class="fl req">Categoria</label><select class="fc" id="la-cat">'+LOR_CATS.map(function(c){return'<option value="'+c+'"'+(a.cat===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="la-tit" value="'+esc(a.tit||'')+'"></div><div class="fg"><label class="fl">Notas adicionales</label><textarea class="fc" id="la-nota" rows="2">'+esc(a.nota||'')+'</textarea></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mLorAct\')">Cancelar</button><button class="btn blor" onclick="gLorActEdit(\''+id+'\')">Guardar cambios</button></div>';document.getElementById('mLorAct').classList.add('open');}
-function gLorActEdit(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(!a)return;var tit=document.getElementById('la-tit').value.trim();if(!tit){alert('La descripcion es obligatoria');return}a.f=v('la-f');a.hora=v('la-h');a.cat=v('la-cat');a.tit=tit;a.nota=document.getElementById('la-nota').value;if(_supaOK){supaSync('lor_agenda',[{id:a.id,f:a.f||null,ho:a.hora||null,co:a.tit||null,nota:a.nota||null,he:!!a.he,freal:a.fReal||null}]).catch(function(e){console.warn('[BMB] Error gLorActEdit:',e.message);});}sv();cM('mLorAct');rLorenzo();setTimeout(function(){var b=document.querySelectorAll('#LTB .tbtn');if(b&&b[1])lorTab('agenda',b[1]);},80);}
-function elimLorAct(id){if(!confirm('¿Eliminar esta actividad?'))return;var _laId=id;DB.lorAgenda=DB.lorAgenda.filter(function(x){return x.id!==_laId;});supaElim('lorAgenda',_laId);sv();rLorenzo();setTimeout(function(){var b=document.querySelectorAll('#LTB .tbtn');if(b&&b[1])lorTab('agenda',b[1]);},80);}
+function gLorActEdit(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(!a)return;var tit=document.getElementById('la-tit').value.trim();if(!tit){alert('La descripcion es obligatoria');return}a.f=v('la-f');a.hora=v('la-h');a.cat=v('la-cat');a.tit=tit;a.nota=document.getElementById('la-nota').value;sv();cM('mLorAct');rLorenzo();}
+function elimLorAct(id){if(!confirm('¿Eliminar esta actividad?'))return;DB.lorAgenda=DB.lorAgenda.filter(function(x){return x.id!==id;});sv();rLorenzo();}
 function oLorenzoNew(){document.getElementById('mLoI').innerHTML='<div class="mh"><div class="mt2">Nuevo reintegro</div><button class="bi" onclick="cM(\'mLo\')">✕</button></div><div class="fr"><div class="fg"><label class="fl req">Prestador</label><input class="fc" id="lo-p"></div><div class="fg"><label class="fl">Monto ($)</label><input class="fc" id="lo-m" type="number" step="0.01"></div></div><div class="fg"><label class="fl">Concepto</label><input class="fc" id="lo-c"></div><div class="fr3"><div class="fg"><label class="fl req">Fecha factura</label><input type="date" class="fc" id="lo-ff" value="'+hoy()+'"></div><div class="fg"><label class="fl">Fecha solicitud</label><input type="date" class="fc" id="lo-fs"></div><div class="fg"><label class="fl">Fecha de cobro</label><input type="date" class="fc" id="lo-fp"></div></div><div class="fg"><label class="fl">¿Es un reintegro recurrente?</label><select class="fc" id="lo-rec" onchange="toggleLorRec()"><option value="">No — evento unico</option><option value="semanal">Si — semanal</option><option value="mensual">Si — mensual</option></select></div><div id="lo-rec-zona" class="hidden"><div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:8px;padding:12px;margin-bottom:12px"><div class="fr"><div class="fg"><label class="fl">Repetir hasta</label><input type="date" class="fc" id="lo-rec-hasta"></div><div class="fg" id="lo-rec-dia-zona"><label class="fl">Dia de la semana</label><select class="fc" id="lo-rec-dia"><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miercoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sabado</option><option value="0">Domingo</option></select></div></div><div class="fg" id="lo-rec-dom-zona" style="display:none"><label class="fl">Dia del mes</label><select class="fc" id="lo-rec-dom">'+Array.from({length:28},function(_,i){return'<option value="'+(i+1)+'">'+(i+1)+'</option>';}).join('')+'</select></div><div style="font-size:11px;color:#5B21B6;margin-top:4px">Se crearan multiples registros, uno por cada ocurrencia hasta la fecha indicada.</div></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mLo\')">Cancelar</button><button class="btn bp" onclick="gLorenzo()">Guardar</button></div>';document.getElementById('mLo').classList.add('open');}
 function toggleLorRec(){var v2=v('lo-rec');var zona=document.getElementById('lo-rec-zona');if(!zona)return;zona.classList.toggle('hidden',!v2);var dz=document.getElementById('lo-rec-dia-zona');var mz=document.getElementById('lo-rec-dom-zona');if(dz)dz.style.display=v2==='semanal'?'':'none';if(mz)mz.style.display=v2==='mensual'?'':'none';}
 function gLorenzo(){var p2=document.getElementById('lo-p').value.trim();var ff=v('lo-ff');if(!p2||!ff){alert('Prestador y fecha son obligatorios');return}var fp=v('lo-fp');var rec=v('lo-rec');var hasta=v('lo-rec-hasta');if(rec&&hasta){var base={prest:p2,monto:v('lo-m'),concepto:document.getElementById('lo-c').value,fSol:v('lo-fs'),pagado:false};var d=new Date(ff+'T12:00:00');var dh=new Date(hasta+'T12:00:00');var count=0;while(d<=dh&&count<100){DB.lorenzo.push(Object.assign({},base,{id:uid(),fFact:d.toISOString().split('T')[0],fPago:''}));if(rec==='semanal')d.setDate(d.getDate()+7);else{d.setMonth(d.getMonth()+1);}count++;}sv();cM('mLo');rLorenzo();return;}DB.lorenzo.push({id:uid(),prest:p2,monto:v('lo-m'),concepto:document.getElementById('lo-c').value,fFact:ff,fSol:v('lo-fs'),fPago:fp,pagado:!!fp});sv();cM('mLo');rLorenzo();}
@@ -1179,5 +991,571 @@ function imprimirFinanzas(){
 }
 // ===================== FIN MODULO FINANZAS =====================
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// ===================== SUPABASE DATA LAYER — BMB 2.0 v2.6 =====================
+// URL y clave del proyecto Supabase
+var SB_URL = 'https://ojcdfzphwloblhfdivdd.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qY2RmenBod2xvYmxoZmRpdmRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNTg0NDQsImV4cCI6MjA5MjYzNDQ0NH0.56KRksw4n0rDDstBiXtFGH5L6dP7YKWGZ8BGz0h2o8M';
+var _sb = null;
+
+// Inicializar cliente Supabase
+function sbInit() {
+  if (!_sb && window.supabase) {
+    _sb = window.supabase.createClient(SB_URL, SB_KEY);
+  }
+  return _sb;
+}
+
+// ─── MAPEO DE COLUMNAS: JS field → Supabase column ───────────────────────────
+// procesos: los campos camelCase se guardan directamente EXCEPTO los inmobiliarios
+var PROC_MAP = {
+  canonFecha: 'canonfecha',
+  canonPer:   'canonper',
+  contVenc:   'contvenc',
+  proximaTarea: 'proximatarea',
+  fechaTarea:   'fechatarea',
+  focoMotivo:   'foco_motivo'
+};
+// Inverso: supabase col → JS field
+var PROC_MAP_INV = {};
+Object.keys(PROC_MAP).forEach(function(k){ PROC_MAP_INV[PROC_MAP[k]] = k; });
+
+// agendas: columnas id, pid, resp, f, ho, co, nota, he, freal
+var AG_MAP = { fReal: 'freal' };
+var AG_MAP_INV = { freal: 'fReal' };
+
+// procuraciones: id, pid, f, ho, lugar, co, re2, flim, realizada, freal, resultado
+var PR_MAP = { fLim: 'flim', fReal: 'freal' };
+var PR_MAP_INV = { flim: 'fLim', freal: 'fReal' };
+
+// vencimientos: id, pid, f, ho, ac, re2, ca2, r, conf2
+// (sin mapeo especial — todo lowercase ya coincide)
+
+// preferencias: uid, pinorder, alorder
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── SERIALIZACIÓN: convierte objeto JS → fila Supabase ──────────────────────
+function toSBRow(obj, mapeo) {
+  var row = {};
+  Object.keys(obj).forEach(function(k) {
+    if (k === '_i' || k === '_dias' || k === '_sinPA') return; // campos computados
+    var col = (mapeo && mapeo[k]) ? mapeo[k] : k;
+    var v = obj[k];
+    // Convertir arrays a JSON string para columnas text de Supabase
+    if (Array.isArray(v)) v = JSON.stringify(v);
+    // Booleans: Supabase los maneja OK
+    // Strings vacíos → null para campos opcionales
+    row[col] = (v === '' || v === undefined) ? null : v;
+  });
+  return row;
+}
+
+// ─── DESERIALIZACIÓN: fila Supabase → objeto JS ──────────────────────────────
+function fromSBRow(row, mapInv) {
+  var obj = {};
+  Object.keys(row).forEach(function(col) {
+    var k = (mapInv && mapInv[col]) ? mapInv[col] : col;
+    var v = row[col];
+    if (v === null || v === undefined) v = '';
+    // Intentar parsear JSON strings (arrays)
+    if (typeof v === 'string' && (v.startsWith('[') || v.startsWith('{'))) {
+      try { v = JSON.parse(v); } catch(e) {}
+    }
+    obj[k] = v;
+  });
+  return obj;
+}
+
+// ─── CARGA INICIAL DESDE SUPABASE ────────────────────────────────────────────
+var _sbLoaded = false;
+
+async function sbCargarTodo(uid) {
+  var sb = sbInit();
+  if (!sb) return false;
+  try {
+    var tablas = [
+      { tabla: 'procesos',      arr: 'procesos',      mapInv: PROC_MAP_INV },
+      { tabla: 'agendas',       arr: 'agendas',        mapInv: AG_MAP_INV   },
+      { tabla: 'procuraciones', arr: 'procuraciones',  mapInv: PR_MAP_INV   },
+      { tabla: 'intervinientes',arr: 'intervinientes', mapInv: null         },
+      { tabla: 'vencimientos',  arr: 'vencimientos',   mapInv: null         },
+      { tabla: 'cc',            arr: 'cc',             mapInv: null         },
+      { tabla: 'lorenzo',       arr: 'lorenzo',        mapInv: null         },
+      { tabla: 'loragenda',     arr: 'lorAgenda',      mapInv: null         },
+      { tabla: 'finanzas',      arr: 'finanzas',       mapInv: null         }
+    ];
+
+    for (var i = 0; i < tablas.length; i++) {
+      var t = tablas[i];
+      var res = await sb.from(t.tabla).select('*');
+      if (res.error) {
+        console.warn('SB load error [' + t.tabla + ']:', res.error.message);
+        continue;
+      }
+      DB[t.arr] = (res.data || []).map(function(row) {
+        return fromSBRow(row, t.mapInv);
+      });
+      sbMarcarExistentes(t.tabla, res.data);
+    }
+
+    // Cargar preferencias (pinOrder, alOrder)
+    var resPref = await sb.from('preferencias').select('*').eq('uid', uid).maybeSingle();
+    if (resPref.data) {
+      try { DB.pinOrder = JSON.parse(resPref.data.pinorder || '[]'); } catch(e) { DB.pinOrder = []; }
+      try { DB.alOrder  = JSON.parse(resPref.data.alorder  || '[]'); } catch(e) { DB.alOrder  = []; }
+    }
+
+    _sbLoaded = true;
+    sv(); // sincronizar localStorage con lo traído de Supabase
+    return true;
+  } catch(e) {
+    console.error('SB carga general:', e);
+    return false;
+  }
+}
+
+// ─── CACHE DE IDs YA EXISTENTES EN SUPABASE ─────────────────────────────────
+// _idsSupa almacena sets de IDs por tabla para diferenciar INSERT vs UPDATE
+var _idsSupa = {};
+
+function sbMarcarExistentes(tabla, arr) {
+  _idsSupa[tabla] = {};
+  (arr || []).forEach(function(row) {
+    if (row.id) _idsSupa[tabla][row.id] = true;
+  });
+}
+
+function sbEsNuevo(tabla, id) {
+  if (!_idsSupa[tabla]) return true;
+  return !_idsSupa[tabla][id];
+}
+
+function sbMarcarConocido(tabla, id) {
+  if (!_idsSupa[tabla]) _idsSupa[tabla] = {};
+  _idsSupa[tabla][id] = true;
+}
+
+// ─── GUARDAR (INSERT o UPDATE según caché _idsSupa) ──────────────────────────
+async function sbUpsert(tabla, obj, mapeo) {
+  var sb = sbInit();
+  if (!sb) return;
+  try {
+    var row = toSBRow(obj, mapeo);
+    var isNew = sbEsNuevo(tabla, obj.id);
+    var res;
+    if (isNew) {
+      res = await sb.from(tabla).insert(row);
+      if (!res.error) sbMarcarConocido(tabla, obj.id);
+    } else {
+      res = await sb.from(tabla).update(row).eq('id', obj.id);
+    }
+    if (res.error) {
+      // Fallback: si INSERT falla por duplicado, intentar UPDATE
+      if (isNew && res.error.code === '23505') {
+        sbMarcarConocido(tabla, obj.id);
+        res = await sb.from(tabla).update(row).eq('id', obj.id);
+      }
+      if (res.error) console.warn('SB save [' + tabla + ']:', res.error.message);
+    }
+  } catch(e) {
+    console.warn('SB upsert error:', e);
+  }
+}
+
+// ─── ELIMINAR UN REGISTRO ────────────────────────────────────────────────────
+async function sbDelete(tabla, id) {
+  var sb = sbInit();
+  if (!sb) return;
+  try {
+    var res = await sb.from(tabla).delete().eq('id', id);
+    if (res.error) console.warn('SB delete [' + tabla + ']:', res.error.message);
+  } catch(e) {
+    console.warn('SB delete error:', e);
+  }
+}
+
+// ─── GUARDAR PREFERENCIAS ────────────────────────────────────────────────────
+async function sbGuardarPreferencias(uid) {
+  var sb = sbInit();
+  if (!sb || !uid) return;
+  try {
+    var row = {
+      uid: uid,
+      pinorder: JSON.stringify(DB.pinOrder || []),
+      alorder:  JSON.stringify(DB.alOrder  || [])
+    };
+    var res = await sb.from('preferencias').upsert(row, { onConflict: 'uid' });
+    if (res.error) console.warn('SB pref upsert:', res.error.message);
+  } catch(e) {
+    console.warn('SB pref error:', e);
+  }
+}
+
+// ─── TABLA POR ARRAY DE DB ───────────────────────────────────────────────────
+function sbTablaYMapeo(arrName) {
+  var m = {
+    procesos:       { tabla: 'procesos',      mapeo: PROC_MAP },
+    agendas:        { tabla: 'agendas',       mapeo: AG_MAP   },
+    procuraciones:  { tabla: 'procuraciones', mapeo: PR_MAP   },
+    intervinientes: { tabla: 'intervinientes',mapeo: null     },
+    vencimientos:   { tabla: 'vencimientos',  mapeo: null     },
+    cc:             { tabla: 'cc',            mapeo: null     },
+    lorenzo:        { tabla: 'lorenzo',       mapeo: null     },
+    lorAgenda:      { tabla: 'loragenda',     mapeo: null     },
+    finanzas:       { tabla: 'finanzas',      mapeo: null     }
+  };
+  return m[arrName] || null;
+}
+
+// ─── REEMPLAZOS DE sv() y ld() ───────────────────────────────────────────────
+// sv() mantiene localStorage Y dispara upserts a Supabase de registros modificados.
+// Para mantener compatibilidad total con el código existente, sv() es sincrónica
+// y lanza los upserts de forma asíncrona (fire-and-forget con cola).
+
+var _svQueue = [];
+var _svRunning = false;
+
+function sv() {
+  // 1. Guardar en localStorage (idéntico al original)
+  try {
+    localStorage.setItem('b2', JSON.stringify(DB));
+  } catch(e) {
+    alert('Error al guardar: ' + e.message);
+  }
+  // 2. Encolar sincronización con Supabase (si ya se cargó o hay sesión activa)
+  if (CU && _sbLoaded) {
+    _enqueueSync();
+  }
+}
+
+var _lastSyncedSnap = null;
+
+function _enqueueSync() {
+  var snap = JSON.stringify(DB);
+  if (snap === _lastSyncedSnap) return;
+  _lastSyncedSnap = snap;
+  _svQueue.push(JSON.parse(snap));
+  sbActualizarIcono('sync');
+  if (!_svRunning) _runSyncQueue();
+}
+
+async function _runSyncQueue() {
+  _svRunning = true;
+  while (_svQueue.length > 0) {
+    var snap = _svQueue.shift();
+    await _syncToSupabase(snap);
+  }
+  _svRunning = false;
+  sbActualizarIcono('ok');
+}
+
+async function _syncToSupabase(snap) {
+  var sb = sbInit();
+  if (!sb) return;
+  var arrNames = ['procesos','agendas','procuraciones','intervinientes','vencimientos','cc','lorenzo','lorAgenda','finanzas'];
+  for (var i = 0; i < arrNames.length; i++) {
+    var name = arrNames[i];
+    var cfg = sbTablaYMapeo(name);
+    if (!cfg) continue;
+    var arr = snap[name] || [];
+    for (var j = 0; j < arr.length; j++) {
+      await sbUpsert(cfg.tabla, arr[j], cfg.mapeo);
+    }
+  }
+  // Preferencias
+  if (CU) await sbGuardarPreferencias(CU.id);
+}
+
+// ld() se mantiene igual (lee localStorage). La carga de Supabase ocurre post-login.
+// El ld() original se conserva con nombre _ldLocal()
+function _ldLocal() {
+  try {
+    var d = localStorage.getItem('b2');
+    if (!d) return;
+    var p = JSON.parse(d);
+    if (!p || !p.procesos) return;
+    ['procesos','agendas','procuraciones','intervinientes','vencimientos','cc','lorenzo'].forEach(function(k) {
+      if (p[k]) DB[k] = p[k];
+    });
+    if (p.lorAgenda) DB.lorAgenda = p.lorAgenda;
+    if (p.pinOrder)  DB.pinOrder  = p.pinOrder;
+    if (p.alOrder)   DB.alOrder   = p.alOrder;
+    if (p.finanzas)  DB.finanzas  = p.finanzas;
+    if (p.juzgados && p.juzgados.length) {
+      var mg = JUZGADOS_BASE.slice();
+      p.juzgados.forEach(function(j) { if (mg.indexOf(j) < 0) mg.push(j); });
+      DB.juzgados = mg;
+    }
+    if (p.tp && p.tp.length) DB.tp = p.tp;
+    if (p.usuarios && p.usuarios.length) {
+      DB.usuarios = p.usuarios;
+      var uD = DB.usuarios.find(function(u) { return u.id === 'dacenzo'; });
+      if (uD) uD.nombre = 'Dr. Nazareno Dacenzo';
+      USUARIOS_BASE.forEach(function(ub) {
+        var ex = DB.usuarios.find(function(u) { return u.id === ub.id; });
+        if (!ex) DB.usuarios.push(JSON.parse(JSON.stringify(ub)));
+      });
+    }
+    DB.procesos.forEach(function(p) {
+      if (p.pa && !p.proximaTarea) { p.proximaTarea = p.pa; delete p.pa; }
+    });
+    [['Dra. Nazarena Lascenso','Dr. Nazareno Dacenzo'],['Dr. Sergio Cej','Dr. Sergio Ivan Cej']].forEach(function(fx) {
+      var vi = fx[0], nu = fx[1];
+      function fn(x) { return x === vi ? nu : x; }
+      DB.procesos.forEach(function(q) { q.re = fn(q.re); if (q.par) q.par = fn(q.par); });
+      DB.agendas.forEach(function(a) { if (a.resp) a.resp = fn(a.resp); });
+      DB.procuraciones.forEach(function(x) { if (x.re2) x.re2 = fn(x.re2); });
+      DB.vencimientos.forEach(function(x) { if (x.re2) x.re2 = fn(x.re2); });
+    });
+    DB.usuarios.forEach(function(u) {
+      if (u.rol !== 'referencia' && u.rol !== 'lectura' && RESPONSABLES.indexOf(u.nombre) < 0)
+        RESPONSABLES.push(u.nombre);
+    });
+    sv();
+  } catch(e) {
+    console.error('Error cargando local:', e);
+  }
+}
+
+// Indicador visual de sincronización
+function sbMostrarEstado(msg, tipo) {
+  var el = document.getElementById('sbStatusBar');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.background = tipo === 'ok' ? '#ECFDF5' : tipo === 'err' ? '#FEF2F2' : '#EFF6FF';
+  el.style.color = tipo === 'ok' ? '#065F46' : tipo === 'err' ? '#991B1B' : '#1D4ED8';
+  el.style.display = 'block';
+  if (tipo === 'ok') setTimeout(function() { el.style.display = 'none'; }, 3000);
+}
+
+// ─── ELIMINACIONES CON SUPABASE ──────────────────────────────────────────────
+// Override de funciones de eliminación para sincronizar con Supabase
+
+var _origElimAgConf = null; // se parchea al final
+
+function sbEliminarRegistro(tabla, id) {
+  sbDelete(tabla, id);
+}
+
+// ─── LOGIN EXTENDIDO: carga Supabase post-autenticación ──────────────────────
+// Se parchea la función login() original para añadir carga desde SB
+
+var _loginOriginal = null; // Se captura dinámicamente
+
+// ─── STATUS BAR (se inyecta en DOM al cargar) ────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  var bar = document.createElement('div');
+  bar.id = 'sbStatusBar';
+  bar.style.cssText = 'position:fixed;bottom:12px;right:16px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;z-index:9999;display:none;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:all .3s';
+  document.body.appendChild(bar);
+});
+
+
+// ─── AUTOSYNC: solo si Supabase tiene MÁS registros que local ────────────────
+async function sbAutoSync() {
+  var sb = sbInit();
+  if (!sb || !CU) return;
+  try {
+    // Comparar cuenta de procesos como proxy general
+    var res = await sb.from('procesos').select('id', { count: 'exact', head: true });
+    if (res.error) { sbActualizarIcono('err'); return; }
+    var countSB = res.count || 0;
+    var countLocal = DB.procesos.length;
+    sbActualizarIcono('sync');
+    if (countSB > countLocal) {
+      // Supabase tiene más datos — recargar todo
+      var ok = await sbCargarTodo(CU.id);
+      if (ok) {
+        sbActualizarIcono('ok');
+        sbMostrarEstado('↻ AutoSync: ' + countSB + ' registros actualizados', 'ok');
+        actualizarBadge();
+        mostrarBanner();
+        if (CS === 'dash') rDash();
+        else if (CS === 'proc') rProcLista();
+      }
+    } else {
+      sbActualizarIcono('ok');
+    }
+  } catch(e) {
+    console.warn('AutoSync error:', e);
+    sbActualizarIcono('err');
+  }
+}
+
+// ─── ACTUALIZAR ICONO ☁ en topbar ─────────────────────────────────────────
+function sbActualizarIcono(estado) {
+  var el = document.getElementById('sbCloudIcon');
+  if (!el) return;
+  if (estado === 'ok')   { el.textContent = '☁️'; el.style.opacity = '1';   el.title = 'Supabase: sincronizado'; }
+  if (estado === 'sync') { el.textContent = '↻';       el.style.opacity = '.7';  el.title = 'Supabase: sincronizando...'; }
+  if (estado === 'off')  { el.textContent = '☁';       el.style.opacity = '.35'; el.title = 'Supabase: modo offline'; }
+  if (estado === 'err')  { el.textContent = '⚠️'; el.style.opacity = '1';   el.title = 'Supabase: error'; }
+}
+
+// ===================== FIN SUPABASE DATA LAYER =====================
+</script>
+
+<script>
+// ─── PARCHE POST-CARGA: extender login() y funciones de eliminación ───────────
+
+// Guardar referencia al login original
+var _loginBase = login;
+
+// Nueva función login que añade carga desde Supabase
+function login() {
+  var u = document.getElementById('lu').value.trim(),
+      pw = document.getElementById('lp2').value;
+  var f = DB.usuarios.find(function(x) { return x.id === u && x.pass === pw; });
+  if (!f) { document.getElementById('le').classList.remove('hidden'); return; }
+  if (f.rol === 'referencia') {
+    document.getElementById('le').classList.remove('hidden');
+    document.getElementById('le').textContent = 'Este usuario no tiene acceso.';
+    return;
+  }
+  CU = f;
+  document.getElementById('le').classList.add('hidden');
+  document.getElementById('LP').classList.add('hidden');
+  document.getElementById('AL').classList.remove('hidden');
+  document.getElementById('sNombre').textContent = f.nombre;
+  document.getElementById('sRol').textContent = rolLabel(f.rol);
+  document.getElementById('TD').textContent = new Date().toLocaleDateString('es-AR', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  if (f.rol === 'admin') {
+    var nl = document.getElementById('navLorenzo'); if (nl) nl.style.display = 'flex';
+    var nf = document.getElementById('navFinanzas'); if (nf) nf.style.display = 'flex';
+  }
+  // Mostrar indicador de carga
+  sbMostrarEstado('⏳ Sincronizando con Supabase...', 'info');
+  // Cargar datos desde Supabase de forma asíncrona
+  sbCargarTodo(f.id).then(function(ok) {
+    if (ok) {
+      sbMostrarEstado('✓ Datos sincronizados desde Supabase', 'ok');
+      sbActualizarIcono('ok');
+      if (window._autoSyncInterval) clearInterval(window._autoSyncInterval);
+      window._autoSyncInterval = setInterval(function() { sbAutoSync(); }, 60000);
+    } else {
+      sbMostrarEstado('⚠ Modo offline — datos desde caché local', 'err');
+      sbActualizarIcono('off');
+    }
+    actualizarBadge();
+    mostrarBanner();
+    nav('dash');
+  }).catch(function(e) {
+    console.warn('SB login load error:', e);
+    sbMostrarEstado('⚠ Error Supabase — modo offline', 'err');
+    sbActualizarIcono('off');
+    actualizarBadge();
+    mostrarBanner();
+    nav('dash');
+  });
+}
+
+// ─── PARCHE DE ELIMINACIONES ──────────────────────────────────────────────────
+// Agendas
+var _origElimAg = elimAgConf;
+function elimAgConf(id, pid, tipo) {
+  sbEliminarRegistro('agendas', id);
+  DB.agendas = DB.agendas.filter(function(x) { return x.id !== id; });
+  sv();
+  mostrarBanner(); actualizarBadge();
+  if (pid && pid !== 'null') refrPT(pid, 'ag');
+  else renderAgLista();
+}
+
+// Procuraciones
+var _origElimProcConf = elimProcConf;
+function elimProcConf(id, pid) {
+  if (!confirm('¿Eliminar esta gestion?')) return;
+  sbEliminarRegistro('procuraciones', id);
+  DB.procuraciones = DB.procuraciones.filter(function(x) { return x.id !== id; });
+  sv();
+  if (pid && pid !== 'null') refrPT(pid, 'proc');
+  else renderProcLista();
+}
+
+// Vencimientos (global y dentro de proceso)
+var _origElimVcProc = elimVcProc;
+function elimVcProc(id, pid) {
+  if (!confirm('¿Eliminar?')) return;
+  sbEliminarRegistro('vencimientos', id);
+  DB.vencimientos = DB.vencimientos.filter(function(x) { return x.id !== id; });
+  sv(); refrPT(pid, 'vc');
+}
+
+var _origElimVcConf = elimVcConf;
+function elimVcConf(id) {
+  if (!confirm('¿Eliminar esta audiencia o vencimiento?')) return;
+  sbEliminarRegistro('vencimientos', id);
+  DB.vencimientos = DB.vencimientos.filter(function(x) { return x.id !== id; });
+  sv(); rVenc();
+}
+
+// Intervinientes
+var _origDlI = dlI;
+function dlI(id, pid) {
+  if (!confirm('Eliminar?')) return;
+  sbEliminarRegistro('intervinientes', id);
+  DB.intervinientes = DB.intervinientes.filter(function(x) { return x.id !== id; });
+  sv(); refrPT(pid, 'iv');
+}
+
+var _origDlIG = dlIG;
+function dlIG(id) {
+  if (!confirm('Eliminar?')) return;
+  sbEliminarRegistro('intervinientes', id);
+  DB.intervinientes = DB.intervinientes.filter(function(x) { return x.id !== id; });
+  sv(); rInterv();
+}
+
+// Lorenzo
+var _origElimLorenzo = elimLorenzo;
+function elimLorenzo(id) {
+  if (!confirm('Eliminar?')) return;
+  sbEliminarRegistro('lorenzo', id);
+  DB.lorenzo = DB.lorenzo.filter(function(x) { return x.id !== id; });
+  sv(); rLorenzo();
+}
+
+var _origElimLorAct = elimLorAct;
+function elimLorAct(id) {
+  if (!confirm('¿Eliminar esta actividad?')) return;
+  sbEliminarRegistro('loragenda', id);
+  DB.lorAgenda = DB.lorAgenda.filter(function(x) { return x.id !== id; });
+  sv(); rLorenzo();
+}
+
+// Finanzas
+var _origElimFin = elimFin;
+function elimFin(id) {
+  if (!confirm('Eliminar este registro y sus cuotas?')) return;
+  // Eliminar cuotas hijas
+  var cuotas = DB.finanzas.filter(function(x) { return x.padreId === id; });
+  cuotas.forEach(function(c) { sbEliminarRegistro('finanzas', c.id); });
+  // Eliminar registro padre
+  sbEliminarRegistro('finanzas', id);
+  DB.finanzas = DB.finanzas.filter(function(x) { return x.id !== id && x.padreId !== id; });
+  sv(); rFinanzas();
+}
+
+// Guardar preferencias cuando cambia pinOrder / alOrder
+var _origGuardarPinOrder = guardarPinOrder;
+function guardarPinOrder() {
+  var lista = document.getElementById('pinList'); if (!lista) return;
+  DB.pinOrder = Array.from(lista.querySelectorAll('.pin-drag')).map(function(el) { return el.getAttribute('data-pid'); });
+  sv();
+  if (CU) sbGuardarPreferencias(CU.id);
+}
+
+var _origAlMover = alMover;
+function alMover(id, dir, fra) {
+  _origAlMover(id, dir, fra);
+  if (CU) sbGuardarPreferencias(CU.id);
+}
+
+// Cargar desde localStorage al inicio (igual que el original)
+_ldLocal();
+</script>
+
 </body>
 </html>
