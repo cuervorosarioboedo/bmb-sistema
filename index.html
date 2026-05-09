@@ -211,8 +211,8 @@ textarea.fc{min-height:160px;resize:vertical}
       <div class="ni" onclick="nav('alertas')" id="navAlertas">🚨 Panel de alertas</div>
       <div class="ns">Informes</div>
       <div class="ni" onclick="nav('reportes')">📄 Reportes e impresion</div>
-      <div class="ni" id="navLorenzo" onclick="nav('lorenzo')">💙 Lorenzo</div>
-      <div class="ni" id="navFinanzas" onclick="nav('finanzas')">💰 Finanzas BMB</div>
+      <div class="ni" id="navLorenzo" onclick="nav('lorenzo')" style="display:none">💙 Lorenzo</div>
+      <div class="ni" id="navFinanzas" onclick="nav('finanzas')" style="display:none">💰 Finanzas BMB</div>
       <div class="ns">IA</div>
       <div class="ni" onclick="nav('ia')">🤖 Asistente IA</div>
       <div class="ns">Config</div>
@@ -229,7 +229,7 @@ textarea.fc{min-height:160px;resize:vertical}
         <button class="btn-atras" onclick="navAtras()" id="btnAtras" style="opacity:.4">← Atras</button>
         <div class="tt" id="TT">Panel Principal</div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px"><div class="td" id="TD"></div><div id="sbCloudIcon" style="font-size:15px;cursor:default" title="Estado Supabase">☁</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><div class="td" id="TD"></div><button id="sbSyncBtn" onclick="sbSyncManual()" title="Sincronizar con Supabase" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px"><span id="sbCloudIcon">☁</span><span style="font-size:11px">Sync</span></button></div>
     </div>
     <div class="ct" id="MC"></div>
   </div>
@@ -389,7 +389,7 @@ function rDash(){
   h+='</div><div>';
   h+='<div class="cd" style="margin-bottom:1rem"><div class="ch"><span class="ctl">Proximas audiencias (45 dias)</span><button class="btn bs bsm" onclick="nav(\'venc\')">Ver todas</button></div><div style="padding:1rem 1.25rem">';
   if(!auds.length)h+='<div style="color:var(--muted);font-size:13px">Sin audiencias en los proximos 45 dias</div>';
-  else h+=auds.slice(0,15).map(function(vx){var p2=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0"><div style=\'display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0\'><div style=\'background:'+c2+';color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;min-width:48px;text-align:center\'>'+(vx.f?vx.f.split(\'-\').slice(2,3)[0]+\'/\'+(vx.f.split(\'-\')[1]||\'\')+\'\':'-')+\'</div><div style=\'width:44px;height:44px;border-radius:50%;border:2.5px solid '+c2+';display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700\'><div style=\'font-size:15px;line-height:1;color:'+c2+'\'>'+(df<=0?'0':df)+'</div><div style=\'font-size:9px;color:'+c2+';margin-top:1px\'>'+(df<=0?\'hoy\':\'días\')+\'</div></div></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;cursor:pointer" onclick="aP(\''+(p2?p2.id:'')+'\')">'+( p2?p2.ca:'-')+'</div><div style="font-size:12px;color:#374151;margin-top:3px;line-height:1.5">'+(vx.ac||'').substr(0,140)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho+'h':'')+'</div></div>'+(vx.conf2?'<span class="vc-conf">CONF</span>':'')+'</div>';}).join('');
+  else h+=auds.slice(0,15).map(function(vx){var p2=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';return'<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0"><div style=\'display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0\'><div style=\'background:'+c2+';color:#fff;border-radius:50%;width:46px;height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700\'><div style=\'font-size:14px;line-height:1\'>'+fF(vx.f).substr(0,2)+'</div><div style=\'font-size:9px;opacity:.85;margin-top:1px\'>'+mesAbr(vx.f)+'</div></div><div style=\'font-size:10px;font-weight:700;color:'+c2+';line-height:1\'>'+( df<=0?'hoy':df+'d')+'</div></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;cursor:pointer" onclick="aP(\''+(p2?p2.id:'')+'\')">'+( p2?p2.ca:'-')+'</div><div style="font-size:12px;color:#374151;margin-top:3px;line-height:1.5">'+(vx.ac||'').substr(0,140)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho+'h':'')+'</div></div>'+(vx.conf2?'<span class="vc-conf">CONF</span>':'')+'</div>';}).join('');
   h+='</div></div>';
   if(lorProx.length){h+='<div class="cd" style="margin-bottom:1rem;border-left:4px solid var(--lor)"><div class="ch"><span class="ctl" style="color:var(--lor)">💙 Lorenzo</span><button class="btn blor bsm" onclick="nav(\'lorenzo\')">Ver agenda</button></div><div style="padding:.75rem 1.25rem">';lorProx.forEach(function(a){h+='<div class="lor-act-card"><div style="min-width:52px;text-align:center;flex-shrink:0"><div style="font-size:18px;font-weight:700;color:var(--lor)">'+fF(a.f).substr(0,2)+'</div><div style="font-size:10px;color:var(--muted)">'+mesAbr(a.f)+'</div></div><div style="flex:1;min-width:0"><span class="lor-cat-badge">'+(a.cat||'Otro')+'</span><div style="font-size:13px;margin-top:4px;font-weight:600">'+esc(a.tit||'-')+'</div>'+(a.hora?'<div style="font-size:11px;color:var(--muted)">'+a.hora+'h</div>':'')+'</div></div>';});h+='</div></div>';}
   h+='</div></div>';
@@ -757,9 +757,9 @@ function genRepEspecial(tipo){
   else if(tipo==='mensual'){tit='Informe Mensual'+(resp?' — '+resp.split(' ').pop():'');var focosTot=todos.filter(function(p){return p.foco;}).length,pinTot=todos.filter(function(p){return p.pin;}).length,crTot=todos.filter(function(p){return p._i==='C'&&!p.foco&&!p.pin;}).length,saTot=todos.filter(function(p){return!tienePA(p);}).length,progTot=todos.filter(function(p){return p._i==='P';}).length;var h0=new Date();h0.setHours(0,0,0,0);var l30=new Date(h0);l30.setDate(l30.getDate()+30);var vp30=DB.vencimientos.filter(function(vx){if(vx.r)return false;if(resp&&vx.re2!==resp)return false;var d=new Date(vx.f+'T12:00:00');return d>=h0&&d<=l30;}).sort(function(a,b){return a.f.localeCompare(b.f);});c='<h2>'+tit+'</h2><h3>Estado general de la cartera</h3><div class="rep-bloque"><div class="rep-bloque-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div>Total activas: <strong>'+todos.length+'</strong></div><div>📌 Prioridad: <strong>'+pinTot+'</strong></div><div>🔥 Modo Foco: <strong>'+focosTot+'</strong></div><div>🗓️ Programadas: <strong>'+progTot+'</strong></div><div>⚠ Sin proxima tarea: <strong style="color:#C0392B">'+saTot+'</strong></div><div>'+badgeIV('C')+' Critico: <strong>'+crTot+'</strong></div></div></div><h3>Audiencias y vencimientos proximos 30 dias ('+vp30.length+')</h3>';if(!vp30.length)c+='<p style="color:#888;font-size:11px">Sin vencimientos proximos.</p>';else vp30.forEach(function(vx){var p=DB.procesos.find(function(x){return x.id===vx.pid;});c+='<div class="rep-bloque"><div class="rep-bloque-head">'+fF(vx.f)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho:'')+(vx.re2?' · '+vx.re2.split(' ').pop():'')+'</div>'+(p?'<div class="rep-bloque-sub"><strong>'+p.ca+'</strong>'+(p.ex?' · N°: '+p.ex:'')+'</div>':'')+'<div class="rep-bloque-body">'+(vx.ac||'-')+'</div></div>';});}
   mostrarPreview(tit,c);
 }
-function rLorenzo(){
+function rLorenzo(){if(CU.rol!=='admin'){document.getElementById('MC').innerHTML='<div style="padding:2rem;color:var(--muted)">Acceso restringido.</div>';return;}
   var h='<div class="tbar" id="LTB"><button class="tbtn active" onclick="lorTab(\'reintegros\',this)">💰 Reintegros</button><button class="tbtn" onclick="lorTab(\'agenda\',this)">📅 Agenda Lorenzo</button></div>';
-  var l=DB.lorenzo.sort(function(a,b){if(!a.pagado&&b.pagado)return-1;if(a.pagado&&!b.pagado)return 1;return b.fFact.localeCompare(a.fFact);});
+  var l=DB.lorenzo.slice().sort(function(a,b){if(!a.pagado&&b.pagado)return-1;if(a.pagado&&!b.pagado)return 1;return(b.fFact||'').localeCompare(a.fFact||'');});
   h+='<div id="lor-reintegros"><div class="fb"><button class="btn blor bsm" onclick="oLorenzoNew()">+ Nuevo reintegro</button></div><div class="cd" style="padding:0"><table class="tbl"><thead><tr><th>Prestador</th><th>Fac.</th><th>Solicitud</th><th>Cobro</th><th>Monto</th><th>Concepto</th><th>Estado</th><th></th></tr></thead><tbody>';
   if(!l.length)h+='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">Sin reintegros</td></tr>';
   l.forEach(function(x){h+='<tr><td style="font-weight:500">'+(x.prest||'-')+'</td><td>'+fF(x.fFact)+'</td><td>'+fF(x.fSol)+'</td><td>'+(x.fPago?fF(x.fPago):'<span style="color:var(--muted)">Pend.</span>')+'</td><td>$'+(x.monto||'-')+'</td><td style="font-size:12px">'+(x.concepto||'-')+'</td><td>'+(x.pagado?'<span class="iu io">Cobrado</span>':'<span class="iu ia">Pendiente</span>')+'</td><td>'+(!x.pagado?'<button class="btn bs bsm" onclick="cobrarLorenzo(\''+x.id+'\')">✓ Cobrado</button>':'')+' <button class="bi" onclick="elimLorenzo(\''+x.id+'\')">🗑️</button></td></tr>';});
@@ -1059,7 +1059,7 @@ async function sbCargarTodo(uid) {
       { tabla: 'vencimientos',  arr: 'vencimientos',   mapInv: null         },
       { tabla: 'cc',            arr: 'cc',             mapInv: null         },
       { tabla: 'lorenzo',       arr: 'lorenzo',        mapInv: null         },
-      { tabla: 'lor_agenda',     arr: 'lorAgenda',      mapInv: null         },
+      { tabla: 'loragenda',     arr: 'lorAgenda',      mapInv: null         },
       { tabla: 'finanzas',      arr: 'finanzas',       mapInv: null         }
     ];
 
@@ -1179,7 +1179,7 @@ function sbTablaYMapeo(arrName) {
     vencimientos:   { tabla: 'vencimientos',  mapeo: null     },
     cc:             { tabla: 'cc',            mapeo: null     },
     lorenzo:        { tabla: 'lorenzo',       mapeo: null     },
-    lorAgenda:      { tabla: 'lor_agenda',     mapeo: null     },
+    lorAgenda:      { tabla: 'loragenda',     mapeo: null     },
     finanzas:       { tabla: 'finanzas',      mapeo: null     }
   };
   return m[arrName] || null;
@@ -1312,6 +1312,33 @@ function sbActualizarIcono(estado) {
   if (estado === 'err')  { el.textContent = '⚠️'; el.style.opacity = '1';   el.title = 'Supabase: error'; }
 }
 
+// ─── SYNC MANUAL ─────────────────────────────────────────────────────────────
+function sbSyncManual() {
+  if (!CU) return;
+  var btn = document.getElementById('sbSyncBtn');
+  var icon = document.getElementById('sbCloudIcon');
+  if (btn) btn.disabled = true;
+  if (icon) icon.textContent = '↻';
+  sbMostrarEstado('⏳ Sincronizando...', 'sync');
+  sbCargarTodo(CU.id).then(function(ok) {
+    if (ok) {
+      sbMostrarEstado('✓ Sincronización completada', 'ok');
+      sbActualizarIcono('ok');
+      actualizarBadge(); mostrarBanner();
+      var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzo,finanzas:rFinanzas};
+      if (fns[CS]) fns[CS]();
+    } else {
+      sbMostrarEstado('⚠ Error al sincronizar', 'err');
+      sbActualizarIcono('err');
+    }
+    if (btn) btn.disabled = false;
+  }).catch(function() {
+    sbMostrarEstado('⚠ Error al sincronizar', 'err');
+    sbActualizarIcono('err');
+    if (btn) btn.disabled = false;
+  });
+}
+
 // ===================== FIN SUPABASE DATA LAYER =====================
 </script>
 
@@ -1433,7 +1460,7 @@ function elimLorenzo(id) {
 var _origElimLorAct = elimLorAct;
 function elimLorAct(id) {
   if (!confirm('¿Eliminar esta actividad?')) return;
-  sbEliminarRegistro('lor_agenda', id);
+  sbEliminarRegistro('loragenda', id);
   DB.lorAgenda = DB.lorAgenda.filter(function(x) { return x.id !== id; });
   sv(); rLorenzo(); setTimeout(function(){var btnAg=document.querySelectorAll('#LTB .tbtn');if(btnAg&&btnAg[1])lorTab('agenda',btnAg[1]);},80);
 }
@@ -1467,7 +1494,7 @@ function alMover(id, dir, fra) {
 }
 
 // Cargar desde localStorage al inicio (igual que el original)
-ld();
+_ldLocal();
 </script>
 
 </body>
