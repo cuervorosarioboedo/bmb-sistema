@@ -274,6 +274,35 @@ var SUPA_HEADERS = {
 var _supaConectado = false;
 var _supaSync = false;
 var _localDirty = false; // true cuando hay cambios locales pendientes de subir
+var _lastPulledSnapshot = null; // snapshot {tabla:{id:jsonStr}} del último pull exitoso
+
+// Guarda foto del estado actual de DB (excluye campos UI locales: pin, foco, _i)
+function _saveSnapshot() {
+  _lastPulledSnapshot = {};
+  ['procesos','agendas','procuraciones','vencimientos','cc','finanzas',
+   'intervinientes','lorenzo','lorAgenda','usuarios'].forEach(function(t) {
+    if (!DB[t]) return;
+    _lastPulledSnapshot[t] = {};
+    DB[t].forEach(function(r) {
+      var c = Object.assign({}, r);
+      delete c.pin; delete c.foco; delete c.focoMotivo; delete c.focoFecha; delete c._i;
+      _lastPulledSnapshot[t][r.id] = JSON.stringify(c);
+    });
+  });
+}
+
+// Devuelve {id:true} de registros nuevos o modificados en esta sesión. null = sin snapshot (push todo).
+function _getChangedIds(table) {
+  if (!_lastPulledSnapshot || !_lastPulledSnapshot[table]) return null;
+  var snap = _lastPulledSnapshot[table], changed = {};
+  (DB[table] || []).forEach(function(r) {
+    if (!snap[r.id]) { changed[r.id] = true; return; } // Nuevo
+    var c = Object.assign({}, r);
+    delete c.pin; delete c.foco; delete c.focoMotivo; delete c.focoFecha; delete c._i;
+    if (JSON.stringify(c) !== snap[r.id]) changed[r.id] = true; // Modificado
+  });
+  return changed;
+}
 
 // ── INDICADOR VISUAL DE ESTADO SUPABASE ──────────────────────
 function supaIndicador(estado, msg) {
@@ -413,6 +442,7 @@ async function supaCargarTodo() {
     // Guardar en localStorage como caché
     localStorage.setItem('b2', JSON.stringify(DB));
     _supaConectado = true;
+    _saveSnapshot(); // Baseline para delta-push: solo subiremos lo que ESTA sesión modifique
     supaIndicador('ok');
     console.log('[BMB Supabase] Datos cargados OK — procesos:', DB.procesos.length, '| agendas:', DB.agendas.length);
   } catch(e) {
@@ -440,7 +470,13 @@ async function _ejecutarSync() {
   var _syncOk = true;
   // Cada tabla independiente: errores visibles en el indicador superior
   async function _ut(t,d){
-    try{if(d&&d.length)await supaUpsert(t,d);return true;}
+    try{
+      if(d&&d.length){
+        console.log('[BMB delta] →',t,d.length,'registro(s)');
+        await supaUpsert(t,d);
+      }
+      return true;
+    }
     catch(e){
       _syncOk=false;
       var em=(e.message||String(e)).substring(0,150);
@@ -453,95 +489,128 @@ async function _ejecutarSync() {
     }
   }
   try {
-    // Procesos — solo columnas que existen en el esquema Supabase (sin campos inmobiliarios)
-    if (DB.procesos.length) {
-      var procs = DB.procesos.map(function(p) { return {
-        id:p.id, ca:p.ca||'', actor:p.actor||null, demandado:p.demandado||null,
-        ti:p.ti||null, pr:p.pr||'media', re:p.re||null, par:p.par||null,
-        ex:p.ex||null, ju:p.ju||null, ins:p.ins||null, mo:p.mo||null,
-        nc:p.nc||null, fi:p.fi||null, um:p.um||null, fa:p.fa||null,
-        ob:p.ob||null, conf:!!p.conf, ar:!!p.ar,
-        proximaTarea:p.proximaTarea||null, fechaTarea:p.fechaTarea||null
-      }; });
+    // ── DELTA PUSH: solo registros nuevos o modificados en esta sesión ──────────
+    // _getChangedIds() compara contra el snapshot del último pull.
+    // Si no hay snapshot (primera sesión), sube todo como antes.
+    // Procesos
+    {
+      var _pIds = _getChangedIds('procesos');
+      var procs = DB.procesos
+        .filter(function(p){ return !_pIds||_pIds[p.id]; })
+        .map(function(p) { return {
+          id:p.id, ca:p.ca||'', actor:p.actor||null, demandado:p.demandado||null,
+          ti:p.ti||null, pr:p.pr||'media', re:p.re||null, par:p.par||null,
+          ex:p.ex||null, ju:p.ju||null, ins:p.ins||null, mo:p.mo||null,
+          nc:p.nc||null, fi:p.fi||null, um:p.um||null, fa:p.fa||null,
+          ob:p.ob||null, conf:!!p.conf, ar:!!p.ar,
+          proximaTarea:p.proximaTarea||null, fechaTarea:p.fechaTarea||null
+        }; });
       await _ut('procesos', procs);
     }
     // Agendas
-    if (DB.agendas.length) {
-      var ags = DB.agendas.map(function(a) { return {
-        id:a.id, pid:a.pid||null, resp:a.resp||null, f:a.f||null,
-        ho:a.ho||null, co:a.co||null, nota:a.nota||null,
-        he:!!a.he, fReal:a.fReal||null
-      }; });
+    {
+      var _agIds = _getChangedIds('agendas');
+      var ags = DB.agendas
+        .filter(function(a){ return !_agIds||_agIds[a.id]; })
+        .map(function(a) { return {
+          id:a.id, pid:a.pid||null, resp:a.resp||null, f:a.f||null,
+          ho:a.ho||null, co:a.co||null, nota:a.nota||null,
+          he:!!a.he, fReal:a.fReal||null
+        }; });
       await _ut('agendas', ags);
     }
     // Procuraciones
-    if (DB.procuraciones.length) {
-      var prx = DB.procuraciones.map(function(x) { return {
-        id:x.id, pid:x.pid||null, f:x.f||null, ho:x.ho||null,
-        lugar:x.lugar||null, co:x.co||null, re2:x.re2||null,
-        fLim:x.fLim||null, realizada:!!x.realizada, fReal:x.fReal||null,
-        resultado:x.resultado||null
-      }; });
+    {
+      var _prxIds = _getChangedIds('procuraciones');
+      var prx = DB.procuraciones
+        .filter(function(x){ return !_prxIds||_prxIds[x.id]; })
+        .map(function(x) { return {
+          id:x.id, pid:x.pid||null, f:x.f||null, ho:x.ho||null,
+          lugar:x.lugar||null, co:x.co||null, re2:x.re2||null,
+          fLim:x.fLim||null, realizada:!!x.realizada, fReal:x.fReal||null,
+          resultado:x.resultado||null
+        }; });
       await _ut('procuraciones', prx);
     }
     // Vencimientos
-    if (DB.vencimientos.length) {
-      var vcs = DB.vencimientos.map(function(v) { return {
-        id:v.id, pid:v.pid||null, f:v.f||null, ho:v.ho||null,
-        ac:v.ac||null, re2:v.re2||null, ca2:!!v.ca2, r:!!v.r, conf2:!!v.conf2
-      }; });
+    {
+      var _vcIds = _getChangedIds('vencimientos');
+      var vcs = DB.vencimientos
+        .filter(function(v){ return !_vcIds||_vcIds[v.id]; })
+        .map(function(v) { return {
+          id:v.id, pid:v.pid||null, f:v.f||null, ho:v.ho||null,
+          ac:v.ac||null, re2:v.re2||null, ca2:!!v.ca2, r:!!v.r, conf2:!!v.conf2
+        }; });
       await _ut('vencimientos', vcs);
     }
     // Cuenta corriente
-    if (DB.cc.length) {
-      var ccs = DB.cc.map(function(c) { return {
-        id:c.id, pid:c.pid||null, f:c.f||null, divisa:c.di||'$',
-        concepto:c.co||null, debe:parseFloat(c.db)||0, haber:parseFloat(c.hb)||0
-      }; });
+    {
+      var _ccIds = _getChangedIds('cc');
+      var ccs = DB.cc
+        .filter(function(c){ return !_ccIds||_ccIds[c.id]; })
+        .map(function(c) { return {
+          id:c.id, pid:c.pid||null, f:c.f||null, divisa:c.di||'$',
+          concepto:c.co||null, debe:parseFloat(c.db)||0, haber:parseFloat(c.hb)||0
+        }; });
       await _ut('cuenta_corriente', ccs);
     }
     // Finanzas
-    if (DB.finanzas.length) {
-      var fins = DB.finanzas.map(function(fi) { return {
-        id:fi.id, tipo:fi.tipo||null, tipo2:fi.tipo2||null, pid:fi.pid||null,
-        ca:fi.ca||null, resp:fi.resp||null, concepto:fi.concepto||null,
-        divisa:fi.divisa||'$', monto:parseFloat(fi.monto)||0,
-        fecha:fi.fecha||null, nota:fi.nota||null, pagado:!!fi.pagado
-      }; });
+    {
+      var _finIds = _getChangedIds('finanzas');
+      var fins = DB.finanzas
+        .filter(function(fi){ return !_finIds||_finIds[fi.id]; })
+        .map(function(fi) { return {
+          id:fi.id, tipo:fi.tipo||null, tipo2:fi.tipo2||null, pid:fi.pid||null,
+          ca:fi.ca||null, resp:fi.resp||null, concepto:fi.concepto||null,
+          divisa:fi.divisa||'$', monto:parseFloat(fi.monto)||0,
+          fecha:fi.fecha||null, nota:fi.nota||null, pagado:!!fi.pagado
+        }; });
       await _ut('finanzas', fins);
     }
     // Intervinientes
-    if (DB.intervinientes.length) {
-      var ivs = DB.intervinientes.map(function(i) { return {
-        id:i.id, pid:i.pid||null, tipo:i.ti||null, nombre:i.no||null,
-        dni:i.dn||null, email:i.em||null, telefono:i.tel||null,
-        domicilio:i.do2||null, ob:i.ob||null
-      }; });
+    {
+      var _ivIds = _getChangedIds('intervinientes');
+      var ivs = DB.intervinientes
+        .filter(function(i){ return !_ivIds||_ivIds[i.id]; })
+        .map(function(i) { return {
+          id:i.id, pid:i.pid||null, tipo:i.ti||i.tipo||null, nombre:i.no||i.nombre||null,
+          dni:i.dn||i.dni||null, email:i.em||i.email||null, telefono:i.tel||i.telefono||null,
+          domicilio:i.do2||i.domicilio||null, ob:i.ob||null
+        }; });
       await _ut('intervinientes', ivs);
     }
     // Lorenzo (reintegros)
-    if (DB.lorenzo.length) {
-      var lors = DB.lorenzo.map(function(l) { return {
-        id: l.id, tit: l.prest||null, f: l.fFact||null, hora: null,
-        cat: l.concepto||null, descripcion: String(l.monto||''), he: !!l.pagado
-      }; });
+    {
+      var _lorIds = _getChangedIds('lorenzo');
+      var lors = DB.lorenzo
+        .filter(function(l){ return !_lorIds||_lorIds[l.id]; })
+        .map(function(l) { return {
+          id: l.id, tit: l.prest||null, f: l.fFact||null, hora: null,
+          cat: l.concepto||null, descripcion: String(l.monto||''), he: !!l.pagado
+        }; });
       await _ut('lorenzo', lors);
     }
     // LorAgenda (agenda personal de Lorenzo)
-    if (DB.lorAgenda.length) {
-      var lags = DB.lorAgenda.map(function(a) { return {
-        id: a.id, f: a.f||null, ho: a.hora||null, co: a.tit||null,
-        nota: a.nota||null, he: !!a.he, fReal: a.fReal||null
-      }; });
+    {
+      var _lagIds = _getChangedIds('lorAgenda');
+      var lags = DB.lorAgenda
+        .filter(function(a){ return !_lagIds||_lagIds[a.id]; })
+        .map(function(a) { return {
+          id: a.id, f: a.f||null, ho: a.hora||null, co: a.tit||null,
+          nota: a.nota||null, he: !!a.he, fReal: a.fReal||null
+        }; });
       await _ut('lor_agenda', lags);
     }
     // Usuarios
-    if (DB.usuarios.length) {
-      var usrs = DB.usuarios.map(function(u) { return {
-        id:u.id, nombre:u.nombre, pass:u.pass,
-        rol:u.rol||'abogado', activo:true,
-        pins_data:u.pins_data||null
-      }; });
+    {
+      var _usrIds = _getChangedIds('usuarios');
+      var usrs = DB.usuarios
+        .filter(function(u){ return !_usrIds||_usrIds[u.id]; })
+        .map(function(u) { return {
+          id:u.id, nombre:u.nombre, pass:u.pass,
+          rol:u.rol||'abogado', activo:true,
+          pins_data:u.pins_data||null
+        }; });
       await _ut('usuarios', usrs);
     }
     if(_syncOk){ _localDirty = false; supaIndicador('ok'); }
@@ -730,6 +799,7 @@ function login(){
   if(!window._autoSyncInt)window._autoSyncInt=setInterval(function(){
     if(!CU||!_supaConectado)return;
     if(_supaSync)return; // esperar si hay un push en curso
+    if(_localDirty)return; // esperar: hay cambios locales pendientes de subir (debounce activo)
     // Auto-sync: SOLO DESCARGA datos de Supabase
     // El push ocurre únicamente cuando el usuario modifica algo (sv() → supaSync debounce)
     // o cuando presiona ☁ Sync manualmente. Esto evita sobreescribir cambios de otros usuarios.
