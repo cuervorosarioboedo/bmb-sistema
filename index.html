@@ -432,6 +432,9 @@ async function _ejecutarSync() {
       var em=(e.message||String(e)).substring(0,150);
       console.error('[BMB sync] Error tabla '+t+':', em);
       supaIndicador('err','☁ Error al guardar «'+t+'»: '+em.substring(0,60));
+      // Notificación visible en pantalla (no solo el indicador pequeño)
+      if(typeof _mostrarErrorSync==='function')
+        _mostrarErrorSync('Error en tabla «'+t+'»: '+em.substring(0,60));
       return false;
     }
   }
@@ -647,8 +650,12 @@ ld();
 // Cargar datos desde Supabase (reemplaza localStorage si hay datos más recientes)
 supaCargarTodo().then(function() {
   supaCrearTablaBloqueos();
-  if(CU) { mostrarBanner(); actualizarBadge(); }
-  // Si el usuario ya estaba logueado (recarga de página), refrescar la vista
+  if(CU) {
+    // Usuario ya logueado (recarga de página): refrescar vista con datos actualizados
+    pinRestore(); mostrarBanner(); actualizarBadge();
+    var _fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};
+    if(_fns[CS])_fns[CS]();
+  }
 }).catch(function(e){ console.warn('Supabase no disponible, usando datos locales.'); });
 function uid(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5);}
 function hoy(){return new Date().toISOString().split('T')[0];}
@@ -831,6 +838,16 @@ function pinRestore(){
   }catch(e){}
 }
 // ── SYNC MANUAL ─────────────────────────────────────────────────────────────────
+function _mostrarErrorSync(detalle){
+  // Notificación de error prominente que el usuario no puede ignorar
+  var bz=document.getElementById('bannerZone');
+  if(bz){
+    var div=document.createElement('div');
+    div.style.cssText='background:#7f1d1d;color:#fca5a5;padding:10px 16px;border-radius:6px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:12px;';
+    div.innerHTML='<span>⚠️ <b>Error al sincronizar:</b> '+detalle+'. Los datos NO se guardaron en la nube. Intente nuevamente.</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:16px;line-height:1">✕</button>';
+    bz.insertBefore(div,bz.firstChild);
+  }
+}
 function syncManual(){
   var btn=document.getElementById('btnSync');
   if(btn){btn.disabled=true;btn.textContent='↻ ...';}
@@ -840,8 +857,8 @@ function syncManual(){
   _ejecutarSync().then(function(pushOk){
     if(pushOk===false){
       // Push falló: NO bajar (evitar sobreescribir cambios locales)
-      if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
-      // El indicador ya muestra el error desde _ut()
+      if(btn){btn.disabled=false;btn.textContent='⚠ Sync';}
+      _mostrarErrorSync('Verificar conexión a internet o contactar al administrador');
       return;
     }
     // Push OK: ahora bajar datos actualizados de Supabase
@@ -851,8 +868,9 @@ function syncManual(){
       if(CU){pinRestore();actualizarBadge();mostrarBanner();var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
     });
   }).catch(function(e){
-    if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
+    if(btn){btn.disabled=false;btn.textContent='⚠ Sync';}
     supaIndicador('err','☁ Error: '+(e&&e.message||'').substring(0,50));
+    _mostrarErrorSync((e&&e.message||'Error de conexión').substring(0,80));
   });
 }
 function pinMover(id,dir){var todos2=procVisibles().filter(function(p){return p.pin;});var ordenados=todos2.slice().sort(function(a,b){var oa=DB.pinOrder.indexOf(a.id),ob=DB.pinOrder.indexOf(b.id);if(oa<0)oa=999;if(ob<0)ob=999;return oa-ob;});var ids=ordenados.map(function(p){return p.id;});var idx=ids.indexOf(id);if(idx<0)return;var nuevo=idx+dir;if(nuevo<0||nuevo>=ids.length)return;var tmp=ids[idx];ids[idx]=ids[nuevo];ids[nuevo]=tmp;DB.pinOrder=ids;sv();rDash();}
