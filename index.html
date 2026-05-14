@@ -403,8 +403,10 @@ async function supaCargarTodo() {
     console.log('[BMB Supabase] Datos cargados OK — procesos:', DB.procesos.length, '| agendas:', DB.agendas.length);
   } catch(e) {
     console.error('[BMB Supabase] Error al cargar:', e);
-    _supaConectado = false;
-    supaIndicador('err');
+    // NO resetear _supaConectado si ya estaba conectado (error transitorio de red)
+    // Solo bloqueamos el push en la carga inicial fallida
+    if (!_supaConectado) supaIndicador('err');
+    else supaIndicador('err');
   }
 }
 
@@ -417,12 +419,22 @@ function supaSync() {
 }
 
 async function _ejecutarSync() {
-  if (!_supaConectado) return; // No sincronizar hasta que la carga inicial de Supabase haya completado
-  if (_supaSync) return;
+  if (!_supaConectado) return true; // aún no cargó, consideramos ok para no bloquear
+  if (_supaSync) return true; // ya hay sync en curso
   _supaSync = true;
   supaIndicador('sync');
-  // Cada tabla se sincroniza de forma INDEPENDIENTE: un error en una tabla no detiene las demás
-  async function _ut(t,d){try{if(d&&d.length)await supaUpsert(t,d);}catch(e){console.error('[BMB sync] Error en tabla '+t+':',(e.message||String(e)).substring(0,180));}}
+  var _syncOk = true;
+  // Cada tabla independiente: errores visibles en el indicador superior
+  async function _ut(t,d){
+    try{if(d&&d.length)await supaUpsert(t,d);return true;}
+    catch(e){
+      _syncOk=false;
+      var em=(e.message||String(e)).substring(0,150);
+      console.error('[BMB sync] Error tabla '+t+':', em);
+      supaIndicador('err','☁ Error al guardar «'+t+'»: '+em.substring(0,60));
+      return false;
+    }
+  }
   try {
     // Procesos — solo columnas que existen en el esquema Supabase (sin campos inmobiliarios)
     if (DB.procesos.length) {
@@ -514,13 +526,15 @@ async function _ejecutarSync() {
       }; });
       await _ut('usuarios', usrs);
     }
-    supaIndicador('ok');
+    if(_syncOk) supaIndicador('ok');
   } catch(e) {
+    _syncOk = false;
     console.error('[BMB Supabase] Error sync inesperado:', e);
-    supaIndicador('err', '☁ Nube: error al sincronizar (datos guardados localmente)');
+    supaIndicador('err', '☁ Error inesperado: '+(e.message||'').substring(0,60));
   } finally {
     _supaSync = false;
   }
+  return _syncOk;
 }
 
 // ── DELETE EN SUPABASE PARA ELIMINACIONES ────────────────────
@@ -692,15 +706,10 @@ function login(){
   pinRestore();actualizarBadge();mostrarBanner();nav('dash');
   if(!window._autoSyncInt)window._autoSyncInt=setInterval(function(){
     if(!CU||!_supaConectado)return;
-    // ORDEN CORRECTO: primero subir cambios locales, luego bajar de Supabase
+    // Auto-guardado silencioso: solo SUBE cambios locales a Supabase
+    // La descarga (pull) ocurre unicamente cuando el usuario presiona ☁ Sync
     if(_pendienteSync){clearTimeout(_pendienteSync);_pendienteSync=null;}
-    Promise.resolve(_ejecutarSync()).then(function(){
-      return supaCargarTodo();
-    }).then(function(){
-      pinRestore();
-      var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};
-      if(fns[CS])fns[CS]();
-    });
+    _ejecutarSync();
   },60000);
 }
 function logout(){CU=null;_histNav=[];var bs2=document.getElementById('btnSync');if(bs2)bs2.style.display='none';clearInterval(window._autoSyncInt);window._autoSyncInt=null;document.getElementById('LP').classList.remove('hidden');document.getElementById('AL').classList.add('hidden');document.getElementById('lu').value='';document.getElementById('lp2').value='';document.getElementById('bannerZone').innerHTML='';}
@@ -811,17 +820,24 @@ function syncManual(){
   var btn=document.getElementById('btnSync');
   if(btn){btn.disabled=true;btn.textContent='↻ ...';}
   supaIndicador('sync');
-  // ORDEN CORRECTO: primero subir cambios locales, luego bajar de Supabase
   if(_pendienteSync){clearTimeout(_pendienteSync);_pendienteSync=null;}
-  Promise.resolve(_ejecutarSync()).then(function(){
-    return supaCargarTodo();
-  }).then(function(){
+  // Primero subir, luego bajar — y solo bajar si el push fue exitoso
+  _ejecutarSync().then(function(pushOk){
+    if(pushOk===false){
+      // Push falló: NO bajar (evitar sobreescribir cambios locales)
+      if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
+      // El indicador ya muestra el error desde _ut()
+      return;
+    }
+    // Push OK: ahora bajar datos actualizados de Supabase
+    return supaCargarTodo().then(function(){
+      if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
+      supaIndicador('ok');
+      if(CU){pinRestore();actualizarBadge();mostrarBanner();var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
+    });
+  }).catch(function(e){
     if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
-    supaIndicador('ok');
-    if(CU){pinRestore();actualizarBadge();mostrarBanner();var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
-  }).catch(function(){
-    if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
-    supaIndicador('err');
+    supaIndicador('err','☁ Error: '+(e&&e.message||'').substring(0,50));
   });
 }
 function pinMover(id,dir){var todos2=procVisibles().filter(function(p){return p.pin;});var ordenados=todos2.slice().sort(function(a,b){var oa=DB.pinOrder.indexOf(a.id),ob=DB.pinOrder.indexOf(b.id);if(oa<0)oa=999;if(ob<0)ob=999;return oa-ob;});var ids=ordenados.map(function(p){return p.id;});var idx=ids.indexOf(id);if(idx<0)return;var nuevo=idx+dir;if(nuevo<0||nuevo>=ids.length)return;var tmp=ids[idx];ids[idx]=ids[nuevo];ids[nuevo]=tmp;DB.pinOrder=ids;sv();rDash();}
