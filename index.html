@@ -279,15 +279,21 @@ function supaIndicador(estado, msg) {
   var el = document.getElementById('supa-status');
   if (!el) return;
   var cfg = {
-    ok:   { bg:'#D1FAE5', color:'#065F46', txt:'☁ Nube: sincronizado' },
-    sync: { bg:'#FEF3C7', color:'#92400E', txt:'☁ Nube: sincronizando...' },
-    err:  { bg:'#FEE2E2', color:'#991B1B', txt:'☁ Nube: sin conexión (datos locales)' },
-    load: { bg:'#EFF6FF', color:'#1D4ED8', txt:'☁ Nube: cargando datos...' }
+    ok:   { bg:'#D1FAE5', color:'#065F46', txt:'☁ Sincronizado' },
+    sync: { bg:'#FEF3C7', color:'#92400E', txt:'☁ Sincronizando...' },
+    err:  { bg:'#FEE2E2', color:'#991B1B', txt:'☁ Error de conexión' },
+    load: { bg:'#EFF6FF', color:'#1D4ED8', txt:'☁ Cargando...' }
   };
   var c = cfg[estado] || cfg.ok;
   el.style.background = c.bg;
   el.style.color = c.color;
   el.textContent = msg || c.txt;
+  // Mostrar siempre; ocultar solo en estado OK después de 3 segundos
+  el.style.display = 'inline-block';
+  if (el._okTimer) clearTimeout(el._okTimer);
+  if (estado === 'ok') {
+    el._okTimer = setTimeout(function() { el.style.display = 'none'; }, 3000);
+  }
 }
 
 // ── FETCH SUPABASE GENÉRICO ───────────────────────────────────
