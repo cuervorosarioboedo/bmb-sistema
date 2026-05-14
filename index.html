@@ -690,7 +690,18 @@ function login(){
   if(f.rol==='admin'){var nl=document.getElementById('navLorenzo');if(nl)nl.style.display='flex';var nf=document.getElementById('navFinanzas');if(nf)nf.style.display='flex';}
   var bs=document.getElementById('btnSync');if(bs)bs.style.display='flex';
   pinRestore();actualizarBadge();mostrarBanner();nav('dash');
-  if(!window._autoSyncInt)window._autoSyncInt=setInterval(function(){if(CU)supaCargarTodo().then(function(){pinRestore();var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();});},60000);
+  if(!window._autoSyncInt)window._autoSyncInt=setInterval(function(){
+    if(!CU||!_supaConectado)return;
+    // ORDEN CORRECTO: primero subir cambios locales, luego bajar de Supabase
+    if(_pendienteSync){clearTimeout(_pendienteSync);_pendienteSync=null;}
+    Promise.resolve(_ejecutarSync()).then(function(){
+      return supaCargarTodo();
+    }).then(function(){
+      pinRestore();
+      var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};
+      if(fns[CS])fns[CS]();
+    });
+  },60000);
 }
 function logout(){CU=null;_histNav=[];var bs2=document.getElementById('btnSync');if(bs2)bs2.style.display='none';clearInterval(window._autoSyncInt);window._autoSyncInt=null;document.getElementById('LP').classList.remove('hidden');document.getElementById('AL').classList.add('hidden');document.getElementById('lu').value='';document.getElementById('lp2').value='';document.getElementById('bannerZone').innerHTML='';}
 function navAtras(){if(_histNav.length>1){_histNav.pop();var prev=_histNav[_histNav.length-1];_histNav.pop();nav(prev);}}
@@ -799,8 +810,12 @@ function pinRestore(){
 function syncManual(){
   var btn=document.getElementById('btnSync');
   if(btn){btn.disabled=true;btn.textContent='↻ ...';}
-  supaIndicador('load');
-  supaCargarTodo().then(function(){
+  supaIndicador('sync');
+  // ORDEN CORRECTO: primero subir cambios locales, luego bajar de Supabase
+  if(_pendienteSync){clearTimeout(_pendienteSync);_pendienteSync=null;}
+  Promise.resolve(_ejecutarSync()).then(function(){
+    return supaCargarTodo();
+  }).then(function(){
     if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
     supaIndicador('ok');
     if(CU){pinRestore();actualizarBadge();mostrarBanner();var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
