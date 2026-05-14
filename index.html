@@ -661,7 +661,7 @@ function pL(p){return p==='alta'?'Alta':p==='media'?'Media':'Baja';}
 function pOrd(p){return p==='alta'?0:p==='media'?1:2;}
 function rolLabel(r){return{admin:'Administrador',abogado:'Abogado',asistente:'Asistente',lectura:'Solo lectura',referencia:'Colaborador externo'}[r]||r;}
 function esInmob(p){return p&&p.ti&&(p.ti.indexOf('Inmobiliario')>=0||p.ti.indexOf('Locacion')>=0);}
-function cM(id){var el=document.getElementById(id);if(el)el.classList.remove('open');}
+function cM(id){var el=document.getElementById(id);if(el)el.classList.remove('open');if(id==='mP'&&_bloqueActivo){supaDesbloquear(_bloqueActivo);}}
 function v(id){var e=document.getElementById(id);return e?e.value:'';}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function stripHtml(h){return h?h.replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').trim():'';}
@@ -764,7 +764,7 @@ function rDash(){
   h+='</div><div>';
   h+='<div class="cd" style="margin-bottom:1rem"><div class="ch"><span class="ctl">Proximas audiencias (45 dias)</span><button class="btn bs bsm" onclick="nav(\'venc\')">Ver todas</button></div><div style="padding:1rem 1.25rem">';
   if(!auds.length)h+='<div style="color:var(--muted);font-size:13px">Sin audiencias en los proximos 45 dias</div>';
-  else h+=auds.slice(0,15).map(function(vx){var p2=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';return'<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0"><div style="background:'+c2+';color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;min-width:54px;text-align:center;flex-shrink:0">'+fFc(vx.f)+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;cursor:pointer" onclick="aP(\''+(p2?p2.id:'')+'\')">'+( p2?p2.ca:'-')+'</div><div style="font-size:12px;color:#374151;margin-top:3px;line-height:1.5">'+(vx.ac||'').substr(0,140)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho+'h':'')+'</div></div>'+(vx.conf2?'<span class="vc-conf">CONF</span>':'')+'</div>';}).join('');
+  else h+=auds.slice(0,15).map(function(vx){var p2=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';return'<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0"><div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0"><div style="background:'+c2+';color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;min-width:54px;text-align:center">'+fFc(vx.f)+'</div><div style="background:'+c2+';color:#fff;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap">'+(df<0?'VENCIDO':df===0?'HOY':df===1?'mañana':df+'d')+'</div></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;cursor:pointer" onclick="aP(\''+(p2?p2.id:'')+'\')">'+( p2?p2.ca:'-')+'</div><div style="font-size:12px;color:#374151;margin-top:3px;line-height:1.5">'+(vx.ac||'').substr(0,140)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho+'h':'')+'</div></div>'+(vx.conf2?'<span class="vc-conf">CONF</span>':'')+'</div>';}).join('');
   h+='</div></div>';
   if(lorProx.length){h+='<div class="cd" style="margin-bottom:1rem;border-left:4px solid var(--lor)"><div class="ch"><span class="ctl" style="color:var(--lor)">💙 Lorenzo</span><button class="btn blor bsm" onclick="nav(\'lorenzo\')">Ver agenda</button></div><div style="padding:.75rem 1.25rem">';lorProx.forEach(function(a){h+='<div class="lor-act-card"><div style="min-width:52px;text-align:center;flex-shrink:0"><div style="font-size:18px;font-weight:700;color:var(--lor)">'+fF(a.f).substr(0,2)+'</div><div style="font-size:10px;color:var(--muted)">'+mesAbr(a.f)+'</div></div><div style="flex:1;min-width:0"><span class="lor-cat-badge">'+(a.cat||'Otro')+'</span><div style="font-size:13px;margin-top:4px;font-weight:600">'+esc(a.tit||'-')+'</div>'+(a.hora?'<div style="font-size:11px;color:var(--muted)">'+a.hora+'h</div>':'')+'</div></div>';});h+='</div></div>';}
   h+='</div></div>';
@@ -913,7 +913,7 @@ function imprimirListado(){
   abrirImpresion('Procesos Activos',c);
 }
 function oNP(){document.getElementById('mPI').innerHTML=fProc(null);document.getElementById('mP').classList.add('open');}
-function aP(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;document.getElementById('mPI').innerHTML=vProc(p);document.getElementById('mP').classList.add('open');}
+async function aP(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;var lk=await supaBloquear(id);if(lk&&lk.bloqueado){alert('⚠️ Expediente en uso\n\nEl expediente está siendo editado por '+lk.por+'.\nAguarde unos segundos e intente nuevamente.');return;}document.getElementById('mPI').innerHTML=vProc(p);document.getElementById('mP').classList.add('open');}
 function elP(id){if(!confirm('Archivar esta causa?'))return;var p=DB.procesos.find(function(x){return x.id===id;});if(p){p.ar=true;p.fa=hoy();sv();}rProcLista();}
 function fProc(p){
   var e=!!p;var esI=esInmob(p);
