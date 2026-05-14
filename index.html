@@ -421,8 +421,10 @@ async function _ejecutarSync() {
   if (_supaSync) return;
   _supaSync = true;
   supaIndicador('sync');
+  // Cada tabla se sincroniza de forma INDEPENDIENTE: un error en una tabla no detiene las demás
+  async function _ut(t,d){try{if(d&&d.length)await supaUpsert(t,d);}catch(e){console.error('[BMB sync] Error en tabla '+t+':',(e.message||String(e)).substring(0,180));}}
   try {
-    // Procesos
+    // Procesos — solo columnas que existen en el esquema Supabase (sin campos inmobiliarios)
     if (DB.procesos.length) {
       var procs = DB.procesos.map(function(p) { return {
         id:p.id, ca:p.ca||'', actor:p.actor||null, demandado:p.demandado||null,
@@ -430,13 +432,9 @@ async function _ejecutarSync() {
         ex:p.ex||null, ju:p.ju||null, ins:p.ins||null, mo:p.mo||null,
         nc:p.nc||null, fi:p.fi||null, um:p.um||null, fa:p.fa||null,
         ob:p.ob||null, conf:!!p.conf, ar:!!p.ar,
-        proximaTarea:p.proximaTarea||null,
-        fechaTarea:p.fechaTarea||null, canon:p.canon||null,
-        canonFecha:p.canonFecha||null, canonPer:p.canonPer||null,
-        contVenc:p.contVenc||null, locatario:p.locatario||null,
-        servicios:p.servicios||null, deudas:p.deudas||null
+        proximaTarea:p.proximaTarea||null, fechaTarea:p.fechaTarea||null
       }; });
-      await supaUpsert('procesos', procs);
+      await _ut('procesos', procs);
     }
     // Agendas
     if (DB.agendas.length) {
@@ -445,7 +443,7 @@ async function _ejecutarSync() {
         ho:a.ho||null, co:a.co||null, nota:a.nota||null,
         he:!!a.he, fReal:a.fReal||null
       }; });
-      await supaUpsert('agendas', ags);
+      await _ut('agendas', ags);
     }
     // Procuraciones
     if (DB.procuraciones.length) {
@@ -455,7 +453,7 @@ async function _ejecutarSync() {
         fLim:x.fLim||null, realizada:!!x.realizada, fReal:x.fReal||null,
         resultado:x.resultado||null
       }; });
-      await supaUpsert('procuraciones', prx);
+      await _ut('procuraciones', prx);
     }
     // Vencimientos
     if (DB.vencimientos.length) {
@@ -463,7 +461,7 @@ async function _ejecutarSync() {
         id:v.id, pid:v.pid||null, f:v.f||null, ho:v.ho||null,
         ac:v.ac||null, re2:v.re2||null, ca2:!!v.ca2, r:!!v.r, conf2:!!v.conf2
       }; });
-      await supaUpsert('vencimientos', vcs);
+      await _ut('vencimientos', vcs);
     }
     // Cuenta corriente
     if (DB.cc.length) {
@@ -471,7 +469,7 @@ async function _ejecutarSync() {
         id:c.id, pid:c.pid||null, f:c.f||null, divisa:c.di||'$',
         concepto:c.co||null, debe:parseFloat(c.db)||0, haber:parseFloat(c.hb)||0
       }; });
-      await supaUpsert('cuenta_corriente', ccs);
+      await _ut('cuenta_corriente', ccs);
     }
     // Finanzas
     if (DB.finanzas.length) {
@@ -481,7 +479,7 @@ async function _ejecutarSync() {
         divisa:fi.divisa||'$', monto:parseFloat(fi.monto)||0,
         fecha:fi.fecha||null, nota:fi.nota||null, pagado:!!fi.pagado
       }; });
-      await supaUpsert('finanzas', fins);
+      await _ut('finanzas', fins);
     }
     // Intervinientes
     if (DB.intervinientes.length) {
@@ -490,33 +488,23 @@ async function _ejecutarSync() {
         dni:i.dn||null, email:i.em||null, telefono:i.tel||null,
         domicilio:i.do2||null, ob:i.ob||null
       }; });
-      await supaUpsert('intervinientes', ivs);
+      await _ut('intervinientes', ivs);
     }
     // Lorenzo (reintegros)
     if (DB.lorenzo.length) {
       var lors = DB.lorenzo.map(function(l) { return {
-        id: l.id,
-        tit: l.prest||null,        // prestador
-        f: l.fFact||null,          // fecha factura
-        hora: null,
-        cat: l.concepto||null,     // concepto
-        descripcion: String(l.monto||''), // monto como texto
-        he: !!l.pagado             // pagado
+        id: l.id, tit: l.prest||null, f: l.fFact||null, hora: null,
+        cat: l.concepto||null, descripcion: String(l.monto||''), he: !!l.pagado
       }; });
-      await supaUpsert('lorenzo', lors);
+      await _ut('lorenzo', lors);
     }
-    // LorAgenda (agenda personal)
+    // LorAgenda (agenda personal de Lorenzo)
     if (DB.lorAgenda.length) {
       var lags = DB.lorAgenda.map(function(a) { return {
-        id: a.id,
-        f: a.f||null,
-        ho: a.hora||null,
-        co: a.tit||null,           // titulo/descripcion
-        nota: a.nota||null,
-        he: !!a.he,
-        fReal: a.fReal||null
+        id: a.id, f: a.f||null, ho: a.hora||null, co: a.tit||null,
+        nota: a.nota||null, he: !!a.he, fReal: a.fReal||null
       }; });
-      await supaUpsert('lor_agenda', lags);
+      await _ut('lor_agenda', lags);
     }
     // Usuarios
     if (DB.usuarios.length) {
@@ -524,11 +512,11 @@ async function _ejecutarSync() {
         id:u.id, nombre:u.nombre, pass:u.pass,
         rol:u.rol||'abogado', activo:true
       }; });
-      await supaUpsert('usuarios', usrs);
+      await _ut('usuarios', usrs);
     }
     supaIndicador('ok');
   } catch(e) {
-    console.error('[BMB Supabase] Error sync:', e);
+    console.error('[BMB Supabase] Error sync inesperado:', e);
     supaIndicador('err', '☁ Nube: error al sincronizar (datos guardados localmente)');
   } finally {
     _supaSync = false;
@@ -551,6 +539,7 @@ function supaEliminar(tabla, id) {
 // ── BLOQUEO DE EXPEDIENTE ────────────────────────────────────
 var _bloqueActivo = null;
 var _bloqueInterval = null;
+var _lorTab = 'reintegros'; // Pestaña activa de Lorenzo (reintegros | agenda)
 
 async function supaBloquear(pid) {
   if (!pid || !_supaConectado) return true;
@@ -701,7 +690,7 @@ function login(){
   if(f.rol==='admin'){var nl=document.getElementById('navLorenzo');if(nl)nl.style.display='flex';var nf=document.getElementById('navFinanzas');if(nf)nf.style.display='flex';}
   var bs=document.getElementById('btnSync');if(bs)bs.style.display='flex';
   pinRestore();actualizarBadge();mostrarBanner();nav('dash');
-  if(!window._autoSyncInt)window._autoSyncInt=setInterval(function(){if(CU)supaCargarTodo().then(function(){pinRestore();var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzo,finanzas:rFinanzas};if(fns[CS])fns[CS]();});},60000);
+  if(!window._autoSyncInt)window._autoSyncInt=setInterval(function(){if(CU)supaCargarTodo().then(function(){pinRestore();var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();});},60000);
 }
 function logout(){CU=null;_histNav=[];var bs2=document.getElementById('btnSync');if(bs2)bs2.style.display='none';clearInterval(window._autoSyncInt);window._autoSyncInt=null;document.getElementById('LP').classList.remove('hidden');document.getElementById('AL').classList.add('hidden');document.getElementById('lu').value='';document.getElementById('lp2').value='';document.getElementById('bannerZone').innerHTML='';}
 function navAtras(){if(_histNav.length>1){_histNav.pop();var prev=_histNav[_histNav.length-1];_histNav.pop();nav(prev);}}
@@ -814,7 +803,7 @@ function syncManual(){
   supaCargarTodo().then(function(){
     if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
     supaIndicador('ok');
-    if(CU){pinRestore();actualizarBadge();mostrarBanner();var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzo,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
+    if(CU){pinRestore();actualizarBadge();mostrarBanner();var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
   }).catch(function(){
     if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
     supaIndicador('err');
@@ -1193,14 +1182,15 @@ function rLorenzo(){if(CU.rol!=='admin'){document.getElementById('MC').innerHTML
   h+='</div>';document.getElementById('MC').innerHTML=h;
 }
 function lorActCard(a){return'<div class="lor-act-card"><div style="min-width:58px;text-align:center;flex-shrink:0"><div style="font-size:22px;font-weight:700;color:var(--lor)">'+fF(a.f).substr(0,2)+'</div><div style="font-size:10px;color:var(--muted)">'+mesAbr(a.f)+'</div></div><div style="flex:1;min-width:0"><span class="lor-cat-badge">'+(a.cat||'Otro')+'</span><div style="font-size:14px;margin-top:4px;font-weight:700">'+esc(a.tit||'-')+'</div>'+(a.hora?'<div style="font-size:11px;color:var(--muted)">'+a.hora+'h</div>':'')+(a.nota?'<div style="font-size:12px;color:var(--muted);margin-top:2px">'+esc(a.nota)+'</div>':'')+(a.he?'<span style="font-size:11px;color:var(--green);font-weight:500">✓ Realizada el '+fF(a.fReal||a.f)+'</span>':'')+'</div><div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">'+(!a.he?'<button class="btn bs bsm" onclick="marcarLorAct(\''+a.id+'\')">✓ Hecho</button>':'')+'<button class="btn bs bsm" onclick="editarLorAct(\''+a.id+'\')">✏️ Editar</button><button class="bi" onclick="elimLorAct(\''+a.id+'\')">🗑️</button></div></div>';}
-function lorTab(tab,btn){document.querySelectorAll('#LTB .tbtn').forEach(function(x){x.classList.remove('active');});if(btn)btn.classList.add('active');var r=document.getElementById('lor-reintegros');var a=document.getElementById('lor-agenda');if(r)r.classList.toggle('hidden',tab!=='reintegros');if(a)a.classList.toggle('hidden',tab!=='agenda');}
+function lorTab(tab,btn){_lorTab=tab;document.querySelectorAll('#LTB .tbtn').forEach(function(x){x.classList.remove('active');});if(btn)btn.classList.add('active');var r=document.getElementById('lor-reintegros');var a=document.getElementById('lor-agenda');if(r)r.classList.toggle('hidden',tab!=='reintegros');if(a)a.classList.toggle('hidden',tab!=='agenda');}
+function rLorenzoCurrent(){rLorenzo();if(_lorTab&&_lorTab!=='reintegros'){setTimeout(function(){var btns=document.querySelectorAll('#LTB .tbtn');var idx=_lorTab==='agenda'?1:0;if(btns[idx])lorTab(_lorTab,btns[idx]);},10);}}
 function filtrarLorAgenda(){var cat=v('lor-cat-filter');var lp=DB.lorAgenda.filter(function(a){return!a.he&&a.f>=hoy()&&(!cat||a.cat===cat);}).sort(function(a,b){return a.f.localeCompare(b.f);});var lpa=DB.lorAgenda.filter(function(a){return(a.he||(a.f<hoy()))&&(!cat||a.cat===cat);}).sort(function(a,b){return b.f.localeCompare(a.f);}).slice(0,20);var elP=document.getElementById('lor-lista-prox');var elPa=document.getElementById('lor-lista-pas');if(elP)elP.innerHTML=lp.length?lp.map(lorActCard).join(''):'<div style="color:var(--muted);font-size:13px">Sin actividades</div>';if(elPa)elPa.innerHTML=lpa.length?lpa.map(lorActCard).join(''):'<div style="color:var(--muted);font-size:13px">Sin actividades anteriores</div>';}
 function oLorActNew(){document.getElementById('mLorActI').innerHTML='<div class="mh"><div class="mt2">💙 Nueva actividad de Lorenzo</div><button class="bi" onclick="cM(\'mLorAct\')">✕</button></div><div class="fr3"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="la-f" value="'+hoy()+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="la-h"></div><div class="fg"><label class="fl req">Categoria</label><select class="fc" id="la-cat">'+LOR_CATS.map(function(c){return'<option>'+c+'</option>';}).join('')+'</select></div></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="la-tit" placeholder="Ej: Turno con la fonoaudiologa..."></div><div class="fg"><label class="fl">Notas adicionales</label><textarea class="fc" id="la-nota" rows="2"></textarea></div><div style="background:#EDE9FE;border:1px solid #DDD6FE;border-radius:8px;padding:10px;font-size:12px;color:#5B21B6;margin-bottom:1rem">Al configurar la integracion con Google Calendar, los recordatorios se enviaran al calendario compartido con Gabriela.</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mLorAct\')">Cancelar</button><button class="btn blor" onclick="gLorAct()">Guardar actividad</button></div>';document.getElementById('mLorAct').classList.add('open');}
 function gLorAct(){var tit=document.getElementById('la-tit').value.trim();if(!tit){alert('La descripcion es obligatoria');return}DB.lorAgenda.push({id:uid(),f:v('la-f'),hora:v('la-h'),cat:v('la-cat'),tit:tit,nota:document.getElementById('la-nota').value,he:false});sv();cM('mLorAct');var btnAg=document.querySelectorAll('#LTB .tbtn');if(btnAg&&btnAg[1]){lorTab('agenda',btnAg[1]);}else{rLorenzo();}}
-function marcarLorAct(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(a){a.he=true;a.fReal=hoy();sv();}rLorenzo();}
+function marcarLorAct(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(a){a.he=true;a.fReal=hoy();sv();}rLorenzoCurrent();}
 function editarLorAct(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(!a)return;document.getElementById('mLorActI').innerHTML='<div class="mh"><div class="mt2">Editar actividad de Lorenzo</div><button class="bi" onclick="cM(\'mLorAct\')">✕</button></div><div class="fr3"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="la-f" value="'+(a.f||hoy())+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="la-h" value="'+(a.hora||'')+'"></div><div class="fg"><label class="fl req">Categoria</label><select class="fc" id="la-cat">'+LOR_CATS.map(function(c){return'<option value="'+c+'"'+(a.cat===c?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div></div><div class="fg"><label class="fl req">Descripcion</label><input class="fc" id="la-tit" value="'+esc(a.tit||'')+'"></div><div class="fg"><label class="fl">Notas adicionales</label><textarea class="fc" id="la-nota" rows="2">'+esc(a.nota||'')+'</textarea></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mLorAct\')">Cancelar</button><button class="btn blor" onclick="gLorActEdit(\''+id+'\')">Guardar cambios</button></div>';document.getElementById('mLorAct').classList.add('open');}
-function gLorActEdit(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(!a)return;var tit=document.getElementById('la-tit').value.trim();if(!tit){alert('La descripcion es obligatoria');return}a.f=v('la-f');a.hora=v('la-h');a.cat=v('la-cat');a.tit=tit;a.nota=document.getElementById('la-nota').value;sv();cM('mLorAct');rLorenzo();}
-function elimLorAct(id){if(!confirm('¿Eliminar esta actividad?'))return;var _laElim=id;DB.lorAgenda=DB.lorAgenda.filter(function(x){return x.id!==id;});supaEliminar('lorAgenda',_laElim);sv();rLorenzo();}
+function gLorActEdit(id){var a=DB.lorAgenda.find(function(x){return x.id===id;});if(!a)return;var tit=document.getElementById('la-tit').value.trim();if(!tit){alert('La descripcion es obligatoria');return}a.f=v('la-f');a.hora=v('la-h');a.cat=v('la-cat');a.tit=tit;a.nota=document.getElementById('la-nota').value;sv();cM('mLorAct');rLorenzoCurrent();}
+function elimLorAct(id){if(!confirm('¿Eliminar esta actividad?'))return;var _laElim=id;DB.lorAgenda=DB.lorAgenda.filter(function(x){return x.id!==id;});supaEliminar('lorAgenda',_laElim);sv();rLorenzoCurrent();}
 function oLorenzoNew(){document.getElementById('mLoI').innerHTML='<div class="mh"><div class="mt2">Nuevo reintegro</div><button class="bi" onclick="cM(\'mLo\')">✕</button></div><div class="fr"><div class="fg"><label class="fl req">Prestador</label><input class="fc" id="lo-p"></div><div class="fg"><label class="fl">Monto ($)</label><input class="fc" id="lo-m" type="number" step="0.01"></div></div><div class="fg"><label class="fl">Concepto</label><input class="fc" id="lo-c"></div><div class="fr3"><div class="fg"><label class="fl req">Fecha factura</label><input type="date" class="fc" id="lo-ff" value="'+hoy()+'"></div><div class="fg"><label class="fl">Fecha solicitud</label><input type="date" class="fc" id="lo-fs"></div><div class="fg"><label class="fl">Fecha de cobro</label><input type="date" class="fc" id="lo-fp"></div></div><div class="fg"><label class="fl">¿Es un reintegro recurrente?</label><select class="fc" id="lo-rec" onchange="toggleLorRec()"><option value="">No — evento unico</option><option value="semanal">Si — semanal</option><option value="mensual">Si — mensual</option></select></div><div id="lo-rec-zona" class="hidden"><div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:8px;padding:12px;margin-bottom:12px"><div class="fr"><div class="fg"><label class="fl">Repetir hasta</label><input type="date" class="fc" id="lo-rec-hasta"></div><div class="fg" id="lo-rec-dia-zona"><label class="fl">Dia de la semana</label><select class="fc" id="lo-rec-dia"><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miercoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sabado</option><option value="0">Domingo</option></select></div></div><div class="fg" id="lo-rec-dom-zona" style="display:none"><label class="fl">Dia del mes</label><select class="fc" id="lo-rec-dom">'+Array.from({length:28},function(_,i){return'<option value="'+(i+1)+'">'+(i+1)+'</option>';}).join('')+'</select></div><div style="font-size:11px;color:#5B21B6;margin-top:4px">Se crearan multiples registros, uno por cada ocurrencia hasta la fecha indicada.</div></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mLo\')">Cancelar</button><button class="btn bp" onclick="gLorenzo()">Guardar</button></div>';document.getElementById('mLo').classList.add('open');}
 function toggleLorRec(){var v2=v('lo-rec');var zona=document.getElementById('lo-rec-zona');if(!zona)return;zona.classList.toggle('hidden',!v2);var dz=document.getElementById('lo-rec-dia-zona');var mz=document.getElementById('lo-rec-dom-zona');if(dz)dz.style.display=v2==='semanal'?'':'none';if(mz)mz.style.display=v2==='mensual'?'':'none';}
 function gLorenzo(){var p2=document.getElementById('lo-p').value.trim();var ff=v('lo-ff');if(!p2||!ff){alert('Prestador y fecha son obligatorios');return}var fp=v('lo-fp');var rec=v('lo-rec');var hasta=v('lo-rec-hasta');if(rec&&hasta){var base={prest:p2,monto:v('lo-m'),concepto:document.getElementById('lo-c').value,fSol:v('lo-fs'),pagado:false};var d=new Date(ff+'T12:00:00');var dh=new Date(hasta+'T12:00:00');var count=0;while(d<=dh&&count<100){DB.lorenzo.push(Object.assign({},base,{id:uid(),fFact:d.toISOString().split('T')[0],fPago:''}));if(rec==='semanal')d.setDate(d.getDate()+7);else{d.setMonth(d.getMonth()+1);}count++;}sv();cM('mLo');rLorenzo();return;}DB.lorenzo.push({id:uid(),prest:p2,monto:v('lo-m'),concepto:document.getElementById('lo-c').value,fFact:ff,fSol:v('lo-fs'),fPago:fp,pagado:!!fp});sv();cM('mLo');rLorenzo();}
