@@ -273,6 +273,7 @@ var SUPA_HEADERS = {
 };
 var _supaConectado = false;
 var _supaSync = false;
+var _localDirty = false; // true cuando hay cambios locales pendientes de subir
 
 // ── INDICADOR VISUAL DE ESTADO SUPABASE ──────────────────────
 function supaIndicador(estado, msg) {
@@ -543,7 +544,7 @@ async function _ejecutarSync() {
       }; });
       await _ut('usuarios', usrs);
     }
-    if(_syncOk) supaIndicador('ok');
+    if(_syncOk){ _localDirty = false; supaIndicador('ok'); }
   } catch(e) {
     _syncOk = false;
     console.error('[BMB Supabase] Error sync inesperado:', e);
@@ -636,6 +637,7 @@ var fR2='',fT2='',fB2='',fP2='',fI2='';
 function sv(){
   try{
     localStorage.setItem('b2',JSON.stringify(DB));
+    _localDirty = true;
     supaSync();
   }catch(e){
     alert('Error al guardar: '+e.message);
@@ -727,15 +729,15 @@ function login(){
   pinRestore();actualizarBadge();mostrarBanner();nav('dash');
   if(!window._autoSyncInt)window._autoSyncInt=setInterval(function(){
     if(!CU||!_supaConectado)return;
-    if(_pendienteSync){clearTimeout(_pendienteSync);_pendienteSync=null;}
-    _ejecutarSync().then(function(pushOk){
-      if(pushOk===false)return;
-      return supaCargarTodo().then(function(){
-        if(!CU)return;
-        pinRestore();
-        var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};
-        if(fns[CS])fns[CS]();
-      });
+    if(_supaSync)return; // esperar si hay un push en curso
+    // Auto-sync: SOLO DESCARGA datos de Supabase
+    // El push ocurre únicamente cuando el usuario modifica algo (sv() → supaSync debounce)
+    // o cuando presiona ☁ Sync manualmente. Esto evita sobreescribir cambios de otros usuarios.
+    supaCargarTodo().then(function(){
+      if(!CU)return;
+      pinRestore();
+      var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};
+      if(fns[CS])fns[CS]();
     });
   },60000);
 }
@@ -868,20 +870,32 @@ function syncManual(){
   if(btn){btn.disabled=true;btn.textContent='↻ ...';}
   supaIndicador('sync');
   if(_pendienteSync){clearTimeout(_pendienteSync);_pendienteSync=null;}
-  // Primero subir, luego bajar — y solo bajar si el push fue exitoso
-  _ejecutarSync().then(function(pushOk){
-    if(pushOk===false){
-      // Push falló: NO bajar (evitar sobreescribir cambios locales)
-      if(btn){btn.disabled=false;btn.textContent='⚠ Sync';}
-      _mostrarErrorSync('Verificar conexión a internet o contactar al administrador');
-      return;
-    }
-    // Push OK: ahora bajar datos actualizados de Supabase
+
+  function _bajar(){
     return supaCargarTodo().then(function(){
       if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
       supaIndicador('ok');
       if(CU){pinRestore();actualizarBadge();mostrarBanner();var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
     });
+  }
+
+  if(!_localDirty){
+    // Sin cambios locales: solo bajar datos de Supabase (nunca sobreescribir)
+    _bajar().catch(function(e){
+      if(btn){btn.disabled=false;btn.textContent='⚠ Sync';}
+      supaIndicador('err','☁ Error: '+(e&&e.message||'').substring(0,50));
+    });
+    return;
+  }
+
+  // Hay cambios locales: subir primero, luego bajar
+  _ejecutarSync().then(function(pushOk){
+    if(pushOk===false){
+      if(btn){btn.disabled=false;btn.textContent='⚠ Sync';}
+      _mostrarErrorSync('Verificar conexión a internet o contactar al administrador');
+      return;
+    }
+    return _bajar();
   }).catch(function(e){
     if(btn){btn.disabled=false;btn.textContent='⚠ Sync';}
     supaIndicador('err','☁ Error: '+(e&&e.message||'').substring(0,50));
