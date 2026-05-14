@@ -790,7 +790,7 @@ function rDash(){
   if(pinned.length){
     var pinnedOrdenados=pinned.slice().sort(function(a,b){var oa=DB.pinOrder.indexOf(a.id),ob=DB.pinOrder.indexOf(b.id);if(oa<0)oa=999;if(ob<0)ob=999;return oa-ob;});
     h+='<div class="cd" id="pinBlock"><div class="ch"><span class="ctl" style="color:#1D4ED8">📌 Prioridad activa</span><span style="font-size:11px;color:var(--muted);font-style:italic">Arrastre para reordenar</span></div><div id="pinList" style="padding:.5rem 1.25rem">';
-    pinnedOrdenados.forEach(function(p){h+='<div class="pin-drag" draggable="true" data-pid="'+p.id+'" style="cursor:grab;border-left:3px solid #1D4ED8;margin-bottom:6px;padding:6px 10px;border-radius:6px;background:#F8FAFF;display:flex;align-items:flex-start;gap:6px"><span style="font-size:16px;flex-shrink:0;padding-top:2px;cursor:grab" title="Arrastrar">⠿</span><div style="flex:1;min-width:0">'+dashRowInner(p)+'</div></div>';});
+    pinnedOrdenados.forEach(function(p){h+='<div class="pin-drag" draggable="true" data-pid="'+p.id+'" style="cursor:grab;border:2px solid #1D4ED8;margin-bottom:10px;padding:10px 14px;border-radius:8px;background:#F8FAFF;display:flex;align-items:flex-start;gap:10px;box-shadow:0 2px 8px rgba(29,78,216,0.10);transition:box-shadow .15s"><span style="font-size:18px;flex-shrink:0;padding-top:1px;cursor:grab;color:#93C5FD;user-select:none" title="Arrastrar para reordenar">⠿</span><div style="flex:1;min-width:0">'+dashRowInner(p)+'</div></div>';});
     h+='</div></div>';
   }
   if(focos.length)h+='<div class="cd"><div class="ch"><span class="ctl" style="color:var(--foco-tx)">🔥 Modo Foco</span></div><div style="padding:.5rem 1.25rem">'+focos.map(dashRow).join('')+'</div></div>';
@@ -890,13 +890,10 @@ function syncManual(){
 }
 function pinMover(id,dir){var todos2=procVisibles().filter(function(p){return p.pin;});var ordenados=todos2.slice().sort(function(a,b){var oa=DB.pinOrder.indexOf(a.id),ob=DB.pinOrder.indexOf(b.id);if(oa<0)oa=999;if(ob<0)ob=999;return oa-ob;});var ids=ordenados.map(function(p){return p.id;});var idx=ids.indexOf(id);if(idx<0)return;var nuevo=idx+dir;if(nuevo<0||nuevo>=ids.length)return;var tmp=ids[idx];ids[idx]=ids[nuevo];ids[nuevo]=tmp;DB.pinOrder=ids;sv();rDash();}
 function dashRowInner(p){
-  var iv=p._i||calcIUO(p);var u=UMBRALES[p.pr||'media']||UMBRALES.media;var dias=dD(p.um||p.fi);
-  var pct=iv==='P'?100:iv==='S'?50:Math.max(0,Math.round((1-dias/u.critico)*100));
-  var col=iv==='C'?'var(--red)':iv==='A'?'var(--amber)':iv==='P'?'#16a34a':'var(--green)';
-  if(p.pin)col='#1D4ED8';if(p.foco)col='var(--foco-bd)';
+  var iv=p._i||calcIUO(p);var dias=dD(p.um||p.fi);
   var dBadge=p.pin?'<span class="db" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE">📌 Prioridad activa</span>':p.foco?'<span class="db" style="background:var(--foco-bg);color:var(--foco-tx);border:1px solid var(--foco-bd)">🔥 Foco</span>':iv==='P'?'<span class="db dg">Programada</span>':(!p.um&&!p.fi?'<span class="db dp">Sin registro</span>':'<span class="db '+dClass(dias)+'">'+dias+'d</span>');
   var pt=textoPA(p);
-  return'<div class="ci"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="cn" onclick="aP(\''+p.id+'\')" data-tip="Abrir expediente">'+p.ca+'</div></div><div class="cm">'+(p.re||'-')+' · '+dBadge+'<div style="font-size:12px;color:'+(pt?'#166534':'var(--red)')+';margin-top:4px;line-height:1.5">'+(pt?pt:'⚠ Sin proxima tarea')+'</div></div><div class="cbar"><div class="cfil" style="width:'+pct+'%;background:'+col+'"></div></div></div><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span>';
+  return'<div class="ci"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="cn" onclick="aP(\''+p.id+'\')" data-tip="Abrir expediente">'+p.ca+'</div></div><div class="cm">'+(p.re||'-')+' · '+dBadge+'<div style="font-size:12px;color:'+(pt?'#166534':'var(--red)')+';margin-top:4px;line-height:1.5">'+(pt?pt:'⚠ Sin proxima tarea')+'</div></div></div><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span>';
 }
 function dashRow(p){
   var iv=p._i||calcIUO(p);var u=UMBRALES[p.pr||'media']||UMBRALES.media;var dias=dD(p.um||p.fi);
