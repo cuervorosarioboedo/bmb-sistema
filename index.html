@@ -396,6 +396,13 @@ async function supaCargarTodo() {
         RESPONSABLES.push(u.nombre);
     });
 
+    // Actualizar CU con los datos frescos de Supabase (incluye pins_data actualizado)
+    // Importante: DB.usuarios es un array nuevo tras cada carga; CU quedaba como referencia vieja
+    if (CU) {
+      var _cuFresh = DB.usuarios.find(function(u) { return u.id === CU.id; });
+      if (_cuFresh) CU = _cuFresh;
+    }
+
     // Guardar en localStorage como caché
     localStorage.setItem('b2', JSON.stringify(DB));
     _supaConectado = true;
@@ -825,13 +832,15 @@ function pinRestore(){
   if(!CU)return;
   DB.procesos.forEach(function(p){p.pin=false;p.foco=false;delete p.focoMotivo;delete p.focoFecha;});
   DB.pinOrder=[];
-  // Prioridad: datos de Supabase (CU.pins_data) > localStorage
-  var raw=CU.pins_data||localStorage.getItem('bmb_pins_'+CU.id);
+  // Leer datos frescos del array DB.usuarios (puede haberse recargado desde Supabase)
+  var _uFresh=DB.usuarios.find(function(u){return u.id===CU.id;})||CU;
+  // Prioridad: DB.usuarios (Supabase fresco) > CU.pins_data > localStorage
+  var raw=_uFresh.pins_data||CU.pins_data||localStorage.getItem('bmb_pins_'+CU.id);
   if(!raw)return;
   try{
     var d=JSON.parse(raw);
-    // Sincronizar localStorage con lo que vino de Supabase
-    if(CU.pins_data)localStorage.setItem('bmb_pins_'+CU.id,raw);
+    // Mantener localStorage sincronizado con lo que vino de Supabase
+    if(_uFresh.pins_data||CU.pins_data)localStorage.setItem('bmb_pins_'+CU.id,raw);
     if(d.pins)d.pins.forEach(function(id){var p=DB.procesos.find(function(x){return x.id===id;});if(p)p.pin=true;});
     if(d.focos)d.focos.forEach(function(fx){var p=DB.procesos.find(function(x){return x.id===fx.id;});if(p){p.foco=true;p.focoMotivo=fx.mot;p.focoFecha=fx.f;}});
     if(d.order)DB.pinOrder=d.order;
