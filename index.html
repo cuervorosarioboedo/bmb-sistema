@@ -522,7 +522,8 @@ async function _ejecutarSync() {
     if (DB.usuarios.length) {
       var usrs = DB.usuarios.map(function(u) { return {
         id:u.id, nombre:u.nombre, pass:u.pass,
-        rol:u.rol||'abogado', activo:true
+        rol:u.rol||'abogado', activo:true,
+        pins_data:u.pins_data||null
       }; });
       await _ut('usuarios', usrs);
     }
@@ -706,10 +707,16 @@ function login(){
   pinRestore();actualizarBadge();mostrarBanner();nav('dash');
   if(!window._autoSyncInt)window._autoSyncInt=setInterval(function(){
     if(!CU||!_supaConectado)return;
-    // Auto-guardado silencioso: solo SUBE cambios locales a Supabase
-    // La descarga (pull) ocurre unicamente cuando el usuario presiona ☁ Sync
     if(_pendienteSync){clearTimeout(_pendienteSync);_pendienteSync=null;}
-    _ejecutarSync();
+    _ejecutarSync().then(function(pushOk){
+      if(pushOk===false)return;
+      return supaCargarTodo().then(function(){
+        if(!CU)return;
+        pinRestore();
+        var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};
+        if(fns[CS])fns[CS]();
+      });
+    });
   },60000);
 }
 function logout(){CU=null;_histNav=[];var bs2=document.getElementById('btnSync');if(bs2)bs2.style.display='none';clearInterval(window._autoSyncInt);window._autoSyncInt=null;document.getElementById('LP').classList.remove('hidden');document.getElementById('AL').classList.add('hidden');document.getElementById('lu').value='';document.getElementById('lp2').value='';document.getElementById('bannerZone').innerHTML='';}
@@ -800,16 +807,24 @@ function pinSave(){
   if(!CU)return;
   var pins=DB.procesos.filter(function(p){return p.pin;}).map(function(p){return p.id;});
   var focos=DB.procesos.filter(function(p){return p.foco;}).map(function(p){return{id:p.id,mot:p.focoMotivo||'',f:p.focoFecha||''};});
-  localStorage.setItem('bmb_pins_'+CU.id,JSON.stringify({pins:pins,focos:focos,order:DB.pinOrder.slice()}));
+  var pdata=JSON.stringify({pins:pins,focos:focos,order:DB.pinOrder.slice()});
+  localStorage.setItem('bmb_pins_'+CU.id,pdata);
+  // Guardar tambien en el registro de usuario para sincronizar entre computadoras
+  CU.pins_data=pdata;
+  var ur=DB.usuarios.find(function(u){return u.id===CU.id;});
+  if(ur)ur.pins_data=pdata;
 }
 function pinRestore(){
   if(!CU)return;
   DB.procesos.forEach(function(p){p.pin=false;p.foco=false;delete p.focoMotivo;delete p.focoFecha;});
   DB.pinOrder=[];
-  var raw=localStorage.getItem('bmb_pins_'+CU.id);
+  // Prioridad: datos de Supabase (CU.pins_data) > localStorage
+  var raw=CU.pins_data||localStorage.getItem('bmb_pins_'+CU.id);
   if(!raw)return;
   try{
     var d=JSON.parse(raw);
+    // Sincronizar localStorage con lo que vino de Supabase
+    if(CU.pins_data)localStorage.setItem('bmb_pins_'+CU.id,raw);
     if(d.pins)d.pins.forEach(function(id){var p=DB.procesos.find(function(x){return x.id===id;});if(p)p.pin=true;});
     if(d.focos)d.focos.forEach(function(fx){var p=DB.procesos.find(function(x){return x.id===fx.id;});if(p){p.foco=true;p.focoMotivo=fx.mot;p.focoFecha=fx.f;}});
     if(d.order)DB.pinOrder=d.order;
