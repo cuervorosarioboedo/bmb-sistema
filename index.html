@@ -796,9 +796,12 @@ function iuoEl(iv,foco,pin){
 function ordenIUO(p){if(p.pin)return 0;if(p.foco)return 1;var i=p._i||calcIUO(p);return{C:2,A:3,S:4,O:5,P:6}[i]||5;}
 function badgeIV(iv){if(iv==='P')return'<span class="badge-ok" style="font-style:italic">PROGRAMADA</span>';return iv==='C'?'<span class="badge-crit">CRITICO</span>':iv==='A'?'<span class="badge-alert">ALERTA</span>':'<span class="badge-ok">AL DIA</span>';}
 function badgePri(pr){return pr==='alta'?'<span class="badge-pri-a">Alta</span>':pr==='baja'?'<span class="badge-pri-b">Baja</span>':'<span class="badge-pri-m">Media</span>';}
-function tienePA(p){var h=hoy();return DB.agendas.some(function(a){return a.pid===p.id&&!a.he&&a.f&&a.f>=h&&!(a.conf&&CU&&CU.rol!=='admin');});}
-function textoPA(p){var h=hoy();var fut=DB.agendas.filter(function(a){return a.pid===p.id&&!a.he&&a.f&&a.f>=h&&!(a.conf&&CU&&CU.rol!=='admin');}).sort(function(a,b){return a.f.localeCompare(b.f);});if(!fut.length)return null;var a=fut[0];return fF(a.f)+': '+stripHtml(a.co||'');}
-function proximaFecha(p){var h=hoy();var fut=DB.agendas.filter(function(a){return a.pid===p.id&&!a.he&&a.f&&a.f>=h&&!(a.conf&&CU&&CU.rol!=='admin');}).sort(function(a,b){return a.f.localeCompare(b.f);});return fut.length?fut[0].f:'';}
+// Nota: las agendas confidenciales NO afectan el cálculo de estado/urgencia para ningún usuario.
+// Su propósito es solo de visibilidad en la lista de agenda (admin las ve con 🔒, no-admin no las ve).
+// Esto garantiza que los contadores de Dashboard y Alertas sean consistentes entre todos los usuarios.
+function tienePA(p){var h=hoy();return DB.agendas.some(function(a){return a.pid===p.id&&!a.he&&a.f&&a.f>=h&&!a.conf;});}
+function textoPA(p){var h=hoy();var fut=DB.agendas.filter(function(a){return a.pid===p.id&&!a.he&&a.f&&a.f>=h&&!a.conf;}).sort(function(a,b){return a.f.localeCompare(b.f);});if(!fut.length)return null;var a=fut[0];return fF(a.f)+': '+stripHtml(a.co||'');}
+function proximaFecha(p){var h=hoy();var fut=DB.agendas.filter(function(a){return a.pid===p.id&&!a.he&&a.f&&a.f>=h&&!a.conf;}).sort(function(a,b){return a.f.localeCompare(b.f);});return fut.length?fut[0].f:'';}
 function login(){
   var u=document.getElementById('lu').value.trim(),pw=document.getElementById('lp2').value;
   var f=DB.usuarios.find(function(x){return x.id===u&&x.pass===pw;});
