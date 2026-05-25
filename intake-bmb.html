@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Intake BMB — Nueva Causa · BMB y Asociados</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   INTAKE BMB — Sistema de Ingreso de Nuevas Causas
+   BMB y Asociados · Rosario · Argentina
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --navy:#1A4B8C; --navy2:#1a5fa8; --gold:#C9A84C; --red:#C0392B;
+  --green:#059669; --green2:#DCFCE7; --cream:#F8F5EF; --muted:#6b7a8d;
+  --border:#d0d8e4; --text:#1a2535; --textl:#4a5568; --bg:#0F1B2D;
+  --card:#fff; --amber:#D97706;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif}
+body{background:var(--cream);color:var(--text);min-height:100vh}
+.hidden{display:none!important}
+
+/* ── HEADER ── */
+.hdr{background:var(--bg);color:#fff;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.3)}
+.hdr-logo{font-size:26px;font-weight:700;letter-spacing:-1px;cursor:pointer;text-decoration:none;color:#fff}
+.hdr-logo span{color:var(--gold)}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.btn-hdr{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);transition:all .15s}
+.btn-hdr:hover{background:rgba(255,255,255,.18);color:#fff}
+.btn-hdr.gold{border-color:var(--gold);color:var(--gold)}
+.btn-hdr.gold:hover{background:var(--gold);color:var(--bg)}
+
+/* ── STEPS ── */
+.steps{background:#fff;border-bottom:1px solid var(--border);padding:.9rem 1.5rem;display:flex;align-items:center;gap:0}
+.step{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;font-size:13px;color:var(--muted);font-weight:500;position:relative;transition:all .2s}
+.step.active{color:var(--navy);font-weight:700}
+.step.done{color:var(--green)}
+.step-num{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;transition:all .2s}
+.step.active .step-num{background:var(--navy);border-color:var(--navy);color:#fff}
+.step.done .step-num{background:var(--green);border-color:var(--green);color:#fff}
+.step-sep{flex:1;height:1px;background:var(--border);max-width:40px;min-width:12px}
+
+/* ── CONTENIDO ── */
+.ct{max-width:900px;margin:0 auto;padding:1.5rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:1.25rem;overflow:hidden}
+.card-hd{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.card-tt{font-size:15px;font-weight:700;color:var(--navy)}
+.card-bd{padding:1.25rem}
+
+/* ── FORMULARIO ── */
+.fg{margin-bottom:14px}
+.fl{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.fl.req::after{content:" *";color:var(--red)}
+.fc{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;background:#fff;transition:border .15s}
+.fc:focus{outline:none;border-color:var(--navy)}
+textarea.fc{min-height:160px;resize:vertical;font-family:inherit;line-height:1.6}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+/* ── BOTONES ── */
+.btn{padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.bp{background:var(--navy);color:#fff}.bp:hover{background:var(--navy2)}
+.bg{background:var(--green);color:#fff}.bg:hover{background:#047857}
+.bs{background:#fff;color:var(--text);border:1px solid var(--border)}.bs:hover{background:#f8f9fa}
+.br{background:#FEE2E2;color:var(--red);border:1px solid #FECACA}.br:hover{background:#FCA5A5}
+.ba{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}.ba:hover{background:#FDE68A}
+.bgold{background:var(--gold);color:var(--bg);font-weight:700}.bgold:hover{background:#d4a94f}
+.bsm{padding:7px 14px;font-size:12px}
+.btn-full{width:100%;justify-content:center;padding:13px}
+.btn-group{display:flex;gap:10px;flex-wrap:wrap;margin-top:1rem}
+
+/* ── ESTADOS ── */
+.loading{display:flex;align-items:center;gap:12px;padding:1.5rem;color:var(--muted);font-style:italic}
+.spin{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.msg{padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px}
+.msg-ok{background:#F0FDF4;border:1px solid #BBF7D0;color:#065F46}
+.msg-err{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B}
+.msg-info{background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8}
+.msg-warn{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+
+/* ── VIABILIDAD BADGE ── */
+.viab{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700}
+.viab-alta{background:#DCFCE7;color:#166534;border:1.5px solid #86EFAC}
+.viab-media{background:#FEF9C3;color:#854D0E;border:1.5px solid #FDE047}
+.viab-baja{background:#FEF2F2;color:#991B1B;border:1.5px solid #FECACA}
+.viab-no{background:#F5F3FF;color:#6D28D9;border:1.5px solid #C4B5FD}
+
+/* ── ANÁLISIS FORMATEADO ── */
+.analisis-sec{margin-bottom:16px;border-left:3px solid var(--navy);padding-left:14px}
+.analisis-sec h3{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.analisis-sec p{font-size:13px;color:var(--textl);line-height:1.7;white-space:pre-wrap}
+
+/* ── INFORME PRELIMINAR ── */
+.informe-sec{margin-bottom:18px;padding:14px;border-radius:8px;background:#fafafa;border:1px solid var(--border)}
+.informe-sec h3{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.informe-sec p{font-size:13px;color:var(--textl);line-height:1.7;white-space:pre-wrap}
+
+/* ── PASO 3: ALTA ── */
+.drive-status{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;font-size:12px;font-weight:500}
+.ds-pend{background:#f0f4f8;color:var(--muted);border:1px solid var(--border)}
+.ds-ok{background:#F0FDF4;color:#166534;border:1px solid #BBF7D0}
+.ds-err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
+.ds-prog{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
+.alta-resultado{background:var(--bg);border-radius:10px;padding:1.5rem;color:#e2e8f0;margin-top:1rem}
+.alta-resultado h3{color:var(--gold);margin-bottom:1rem;font-size:15px}
+.alta-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:13px}
+.alta-ico{font-size:16px;flex-shrink:0;margin-top:1px}
+.alta-link{color:#93C5FD;text-decoration:underline;cursor:pointer}
+
+/* ── MODAL CONFIGURACIÓN ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:flex-start;justify-content:center;padding:2rem;overflow-y:auto}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:560px;padding:1.75rem;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.modal-tt{font-size:16px;font-weight:700}
+.btn-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);padding:2px 6px;border-radius:4px}
+.btn-close:hover{color:var(--red)}
+
+/* ── COMUNICADO AL CLIENTE ── */
+.comunicado{background:#F8F5EF;border:2px solid var(--gold);border-radius:8px;padding:14px;font-size:13px;line-height:1.7;white-space:pre-wrap;color:var(--text);font-style:italic}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .fr2,.fr3{grid-template-columns:1fr}
+  .ct{padding:1rem}
+  .steps{gap:0;overflow-x:auto}
+  .step{padding:6px 8px;font-size:11px}
+  .btn-group{flex-direction:column}
+}
+
+/* ── PRINT (PDF export) ── */
+@media print{
+  .hdr,.steps,.btn,.btn-group,.card-hd button{display:none!important}
+  body{background:#fff;color:#000}
+  .card{box-shadow:none;border:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     HEADER
+     ═══════════════════════════════════════ -->
+<header class="hdr">
+  <div>
+    <div class="hdr-logo">BMB<span>.</span></div>
+    <div class="hdr-sub">Módulo de Intake — Nueva Causa</div>
+  </div>
+  <div class="hdr-right">
+    <button class="btn-hdr" onclick="nuevoIntake()" title="Comenzar un nuevo intake">🔄 Nuevo intake</button>
+    <button class="btn-hdr gold" onclick="abrirConfig()" title="Configurar API keys">⚙️ Configuración</button>
+    <a href="index.html" class="btn-hdr" title="Volver al sistema principal">← BMB 2.0</a>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════
+     INDICADOR DE PASOS
+     ═══════════════════════════════════════ -->
+<div class="steps" id="steps-bar">
+  <div class="step active" id="step-ind-1">
+    <div class="step-num">1</div>
+    <span>Evaluación</span>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step" id="step-ind-2">
+    <div class="step-num">2</div>
+    <span>Informe</span>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step" id="step-ind-3">
+    <div class="step-num">3</div>
+    <span>Alta en Sistema</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PASO 1 — FORMULARIO + ANÁLISIS
+     ═══════════════════════════════════════ -->
+<div class="ct" id="contenedor-paso-1">
+
+  <!-- Aviso de configuración pendiente -->
+  <div class="msg msg-warn hidden" id="aviso-config">
+    ⚠️ <span>Configure su API Key de Anthropic en <strong>⚙️ Configuración</strong> antes de continuar.</span>
+  </div>
+
+  <!-- Formulario de intake -->
+  <div class="card" id="card-formulario">
+    <div class="card-hd">
+      <div class="card-tt">📝 Datos de la entrevista</div>
+      <div style="font-size:11px;color:var(--muted)">Campos marcados con * son obligatorios</div>
+    </div>
+    <div class="card-bd">
+      <div class="fr3">
+        <div class="fg">
+          <label class="fl req">Fecha de entrevista</label>
+          <input type="date" class="fc" id="f-fecha">
+        </div>
+        <div class="fg">
+          <label class="fl req">Nombre y apellido del cliente</label>
+          <input type="text" class="fc" id="f-cliente" placeholder="Apellido, Nombre">
+        </div>
+        <div class="fg">
+          <label class="fl">Teléfono</label>
+          <input type="tel" class="fc" id="f-tel" placeholder="+54 341 ...">
+        </div>
+      </div>
+      <div class="fr2">
+        <div class="fg">
+          <label class="fl">Email</label>
+          <input type="email" class="fc" id="f-email" placeholder="cliente@email.com">
+        </div>
+        <div class="fg">
+          <label class="fl req">Rama jurídica</label>
+          <select class="fc" id="f-rama">
+            <option value="">Seleccione...</option>
+            <option value="ART/Accidente de Trabajo">ART / Accidente de Trabajo</option>
+            <option value="Enfermedad Profesional">Enfermedad Profesional</option>
+            <option value="Sucesión">Sucesión</option>
+            <option value="Daños y Perjuicios/Accidente de Tránsito">Daños y Perjuicios / Accidente de Tránsito</option>
+            <option value="Inmobiliario">Inmobiliario</option>
+            <option value="Laboral/Cobro de Pesos">Laboral / Cobro de Pesos</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl req">Abogado responsable provisional</label>
+        <select class="fc" id="f-abogado">
+          <option value="">Seleccione...</option>
+          <option value="Dr. Emanuel Banuls">Dr. Bañuls (Emanuel)</option>
+          <option value="Dr. Alexis Banuls">Dr. Alexis Bañuls</option>
+          <option value="Dr. Nazareno Dacenzo">Dr. Dacenzo</option>
+          <option value="Dr. Sergio Ivan Cej">Dr. Cej</option>
+          <option value="Dra. Romina Kunz">Dra. Kunz</option>
+          <option value="Dr. Diego Spotti">Dr. Spotti</option>
+          <option value="Dr. Adolfo Suarez Erdaire">Dr. Suárez Erdaire</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl req">Transcripción de la entrevista</label>
+        <textarea class="fc" id="f-transcripcion" placeholder="Pegue aquí la transcripción completa de la entrevista con el cliente. Puede ser obtenida con Google Recorder, Notas de Voz (iOS 18+), Otter.ai, TapeACall u otra herramienta de transcripción automática." style="min-height:220px"></textarea>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">El sistema no graba ni transcribe audio. La transcripción debe obtenerse con herramienta externa y pegarse aquí.</div>
+      </div>
+      <button class="btn bp btn-full" onclick="analizarViabilidad()">🔍 Analizar viabilidad</button>
+    </div>
+  </div>
+
+  <!-- Loading análisis -->
+  <div class="card hidden" id="card-loading-analisis">
+    <div class="card-bd loading">
+      <div class="spin"></div>
+      <div>Analizando la transcripción con inteligencia artificial...<br><span style="font-size:11px">Esto puede tomar entre 10 y 30 segundos según la extensión de la entrevista.</span></div>
+    </div>
+  </div>
+
+  <!-- Resultado del análisis -->
+  <div class="card hidden" id="card-analisis">
+    <div class="card-hd">
+      <div>
+        <div class="card-tt">🧠 Análisis de viabilidad — Claude AI</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">Basado en la transcripción. Verifique antes de tomar decisión.</div>
+      </div>
+      <div id="viabilidad-badge"></div>
+    </div>
+    <div class="card-bd">
+      <div id="analisis-contenido"></div>
+      <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:2px solid var(--border)">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:.75rem">Decisión del estudio:</div>
+        <div class="btn-group">
+          <button class="btn bg" onclick="aceptarCausa()">✅ Aceptar causa</button>
+          <button class="btn ba" onclick="solicitarMasInfo()">📋 Solicitar más información</button>
+          <button class="btn br" onclick="rechazarCausa()">✕ Rechazar causa</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultado: más info / rechazo -->
+  <div class="card hidden" id="card-decision-final">
+    <div class="card-hd">
+      <div class="card-tt" id="decision-tt">Decisión registrada</div>
+    </div>
+    <div class="card-bd">
+      <div class="msg" id="decision-msg"></div>
+      <div style="margin-top:1rem">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Comunicación sugerida al cliente:</div>
+        <div class="comunicado" id="comunicado-texto"></div>
+      </div>
+      <div class="btn-group">
+        <button class="btn bs" onclick="nuevoIntake()">🔄 Nuevo intake</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /contenedor-paso-1 -->
+
+<!-- ═══════════════════════════════════════
+     PASO 2 — INFORME PRELIMINAR
+     ═══════════════════════════════════════ -->
+<div class="ct hidden" id="contenedor-paso-2">
+
+  <!-- Loading informe -->
+  <div class="card" id="card-loading-informe">
+    <div class="card-bd loading">
+      <div class="spin"></div>
+      <div>Generando informe preliminar de la causa...<br><span style="font-size:11px">Esto puede tomar entre 15 y 45 segundos.</span></div>
+    </div>
+  </div>
+
+  <!-- Informe generado -->
+  <div class="card hidden" id="card-informe">
+    <div class="card-hd">
+      <div class="card-tt">📄 Informe Preliminar de Causa</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bs bsm" onclick="descargarPDF()">🖨️ Descargar PDF</button>
+        <button class="btn bsm" id="btn-drive" onclick="guardarEnDrive()" style="background:#4285F4;color:#fff;border:none" title="Guarda el informe en Google Drive">☁ Guardar en Drive</button>
+      </div>
+    </div>
+    <div class="card-bd">
+      <div id="informe-contenido"></div>
+    </div>
+  </div>
+
+  <!-- Mensaje estado Drive -->
+  <div id="drive-msg-paso2" class="hidden"></div>
+
+  <!-- Continuar a paso 3 -->
+  <div class="btn-group" id="btn-continuar-p3" style="display:none">
+    <button class="btn bgold" onclick="irAPaso3()">Continuar → Alta en Sistema</button>
+    <button class="btn bs" onclick="nuevoIntake()">Cancelar</button>
+  </div>
+
+</div><!-- /contenedor-paso-2 -->
+
+<!-- ═══════════════════════════════════════
+     PASO 3 — ALTA EN SISTEMA
+     ═══════════════════════════════════════ -->
+<div class="ct hidden" id="contenedor-paso-3">
+
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-tt">🗂️ Confirmar alta de la causa</div>
+      <div style="font-size:11px;color:var(--muted)">Revise y edite los datos antes de confirmar</div>
+    </div>
+    <div class="card-bd">
+
+      <!-- Carpeta Drive -->
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px 14px;margin-bottom:1.25rem">
+        <div style="font-size:11px;font-weight:700;color:#1D4ED8;text-transform:uppercase;margin-bottom:6px">📁 Carpeta en Google Drive</div>
+        <div class="fr2">
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">Nombre de la carpeta</label>
+            <input type="text" class="fc" id="a-carpeta" placeholder="ART — Apellido Nombre">
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">Estado Drive</label>
+            <div class="drive-status ds-pend" id="drive-estado">⏳ Sin conectar</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn bsm" onclick="conectarDrive()" style="background:#4285F4;color:#fff;border:none;font-size:12px">🔗 Conectar Google Drive</button>
+        </div>
+      </div>
+
+      <!-- Datos del caso -->
+      <div class="fr2">
+        <div class="fg">
+          <label class="fl req">Carátula del expediente</label>
+          <input type="text" class="fc" id="a-caratula" placeholder="Apellido c/ Empresa s/ Daños">
+        </div>
+        <div class="fg">
+          <label class="fl req">Tipo de causa</label>
+          <select class="fc" id="a-tipo">
+            <option value="ART / Accidentes de Trabajo">ART / Accidentes de Trabajo</option>
+            <option value="Enfermedad Profesional">Enfermedad Profesional</option>
+            <option value="Daños y Perjuicios">Daños y Perjuicios</option>
+            <option value="Sucesión">Sucesión</option>
+            <option value="Laboral / Cobro de Pesos">Laboral / Cobro de Pesos</option>
+            <option value="Inmobiliario / Locaciones">Inmobiliario / Locaciones</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fr3">
+        <div class="fg">
+          <label class="fl req">Responsable del caso</label>
+          <select class="fc" id="a-resp">
+            <option value="Dr. Emanuel Banuls">Dr. Bañuls (Emanuel)</option>
+            <option value="Dr. Alexis Banuls">Dr. Alexis Bañuls</option>
+            <option value="Dr. Nazareno Dacenzo">Dr. Dacenzo</option>
+            <option value="Dr. Sergio Ivan Cej">Dr. Cej</option>
+            <option value="Dra. Romina Kunz">Dra. Kunz</option>
+            <option value="Dr. Diego Spotti">Dr. Spotti</option>
+            <option value="Dr. Adolfo Suarez Erdaire">Dr. Suárez Erdaire</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl req">Primer agendamiento</label>
+          <input type="text" class="fc" id="a-tarea" value="Leer informe Claude y definir próximo paso procesal">
+        </div>
+        <div class="fg">
+          <label class="fl req">Plazo del agendamiento</label>
+          <select class="fc" id="a-plazo-sel" onchange="actualizarPlazoFecha()">
+            <option value="7">7 días</option>
+            <option value="15" selected>15 días</option>
+            <option value="30">30 días</option>
+            <option value="manual">Fecha manual...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fg hidden" id="fg-plazo-manual">
+        <label class="fl">Fecha del agendamiento</label>
+        <input type="date" class="fc" id="a-plazo-fecha">
+      </div>
+
+      <div class="fg">
+        <label class="fl">Observaciones / Resumen del caso</label>
+        <textarea class="fc" id="a-obs" rows="3" placeholder="Breve resumen de los hechos para referencia interna..."></textarea>
+      </div>
+
+      <button class="btn bp btn-full" style="margin-top:.5rem" onclick="confirmarAlta()">✅ Confirmar y crear causa</button>
+    </div>
+  </div>
+
+  <!-- Loading alta -->
+  <div class="card hidden" id="card-loading-alta">
+    <div class="card-bd loading">
+      <div class="spin"></div>
+      <div id="msg-loading-alta">Procesando...</div>
+    </div>
+  </div>
+
+  <!-- Resultado alta -->
+  <div class="card hidden" id="card-alta-resultado">
+    <div class="card-bd">
+      <div class="alta-resultado" id="alta-detalle"></div>
+      <div class="btn-group" style="margin-top:1rem">
+        <button class="btn bgold" onclick="nuevoIntake()">🔄 Nuevo intake</button>
+        <a href="index.html" class="btn bp">← Abrir BMB 2.0</a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /contenedor-paso-3 -->
+
+<!-- ═══════════════════════════════════════
+     MODAL CONFIGURACIÓN
+     ═══════════════════════════════════════ -->
+<div class="overlay" id="overlay-config">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-tt">⚙️ Configuración del módulo</div>
+      <button class="btn-close" onclick="cerrarConfig()">✕</button>
+    </div>
+
+    <div style="background:#FEF9C3;border:1px solid #FDE047;border-radius:8px;padding:10px 12px;margin-bottom:1rem;font-size:12px;color:#854D0E">
+      <strong>Seguridad:</strong> Las claves se guardan únicamente en el almacenamiento local de este navegador y nunca se transmiten a servidores externos.
+    </div>
+
+    <div class="fg">
+      <label class="fl req">API Key de Anthropic</label>
+      <input type="password" class="fc" id="cfg-api-key" placeholder="sk-ant-api03-...">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Obtenga su clave en <strong>console.anthropic.com</strong> → API Keys</div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Modelo Claude</label>
+      <input type="text" class="fc" id="cfg-modelo" placeholder="claude-opus-4-6">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Deje en blanco para usar el modelo predeterminado (claude-opus-4-6)</div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);margin:1rem 0;padding-top:1rem">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">Google Drive (opcional)</div>
+
+      <div class="fg">
+        <label class="fl">Client ID de Google OAuth</label>
+        <input type="text" class="fc" id="cfg-gcid" placeholder="XXXXXXXXXX.apps.googleusercontent.com">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Cree credenciales OAuth en <strong>console.cloud.google.com</strong> → APIs & Services → Credentials</div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">ID de carpeta "CASOS" en Drive</label>
+        <input type="text" class="fc" id="cfg-casos-id" placeholder="1a2B3c4D5e6F... (opcional)">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Si se deja en blanco, el sistema busca automáticamente una carpeta llamada "CASOS". Puede obtener el ID desde la URL de Drive.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem">
+      <button class="btn bs" onclick="cerrarConfig()">Cancelar</button>
+      <button class="btn bp" onclick="guardarConfig()">Guardar configuración</button>
+    </div>
+  </div>
+</div>
+
+<!-- GIS de Google (para OAuth Drive) -->
+<script src="https://accounts.google.com/gsi/client" async defer onload="onGISCargado()"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   INTAKE BMB — JavaScript
+   ═══════════════════════════════════════════════════════════ */
+
+// ── ESTADO GLOBAL ──────────────────────────────────────────
+var E = {
+  paso: 1,
+  form: {},         // datos del formulario de intake
+  analisis: '',     // texto crudo del análisis Claude
+  decision: '',     // 'aceptar' | 'rechazar' | 'info'
+  informe: '',      // texto crudo del informe Claude
+  driveToken: null, // OAuth token Drive
+  casosId: null,    // ID de carpeta "CASOS"
+  carpetaId: null,  // ID de la carpeta creada
+  subcarpetas: {},  // { documental, escritos, informes }
+  informeDocId: null,
+  informeDocUrl: null,
+  carpetaUrl: null,
+};
+
+// ── CONFIGURACIÓN ──────────────────────────────────────────
+var CFG = {
+  apiKey: '',
+  modelo: 'claude-opus-4-6',
+  gcid: '',
+  casosId: '',
+};
+var gisCliente = null;
+var gisListo = false;
+
+function cargarConfig() {
+  CFG.apiKey   = localStorage.getItem('intake_api_key') || '';
+  CFG.modelo   = localStorage.getItem('intake_modelo')  || 'claude-opus-4-6';
+  CFG.gcid     = localStorage.getItem('intake_gcid')    || '';
+  CFG.casosId  = localStorage.getItem('intake_casos_id')|| '';
+}
+
+function guardarConfig() {
+  var k = document.getElementById('cfg-api-key').value.trim();
+  var m = document.getElementById('cfg-modelo').value.trim();
+  var g = document.getElementById('cfg-gcid').value.trim();
+  var c = document.getElementById('cfg-casos-id').value.trim();
+  if (!k) { alert('La API Key de Anthropic es obligatoria.'); return; }
+  localStorage.setItem('intake_api_key',    k);
+  localStorage.setItem('intake_modelo',     m || 'claude-opus-4-6');
+  localStorage.setItem('intake_gcid',       g);
+  localStorage.setItem('intake_casos_id',   c);
+  cargarConfig();
+  cerrarConfig();
+  mostrarAviso('Configuración guardada correctamente.', 'ok');
+  checkConfig();
+}
+
+function checkConfig() {
+  var aviso = document.getElementById('aviso-config');
+  if (!CFG.apiKey) { aviso.classList.remove('hidden'); }
+  else { aviso.classList.add('hidden'); }
+}
+
+// ── MODAL CONFIG ───────────────────────────────────────────
+function abrirConfig() {
+  document.getElementById('cfg-api-key').value = CFG.apiKey;
+  document.getElementById('cfg-modelo').value  = CFG.modelo;
+  document.getElementById('cfg-gcid').value    = CFG.gcid;
+  document.getElementById('cfg-casos-id').value= CFG.casosId;
+  document.getElementById('overlay-config').classList.add('open');
+}
+function cerrarConfig() {
+  document.getElementById('overlay-config').classList.remove('open');
+}
+
+// ── INDICADOR DE PASOS ─────────────────────────────────────
+function irPaso(n) {
+  E.paso = n;
+  ['1','2','3'].forEach(function(i) {
+    var el = document.getElementById('contenedor-paso-' + i);
+    if (el) el.classList.toggle('hidden', i !== String(n));
+    var ind = document.getElementById('step-ind-' + i);
+    if (ind) {
+      ind.classList.remove('active','done');
+      if (parseInt(i) < n) ind.classList.add('done');
+      else if (parseInt(i) === n) ind.classList.add('active');
+    }
+  });
+  window.scrollTo(0,0);
+}
+
+// ── UTILIDADES ─────────────────────────────────────────────
+function hoy() { return new Date().toISOString().split('T')[0]; }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2,5); }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fechaMasN(n) {
+  var d = new Date(); d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+function fF(iso) {
+  if (!iso) return '-';
+  var p = iso.split('-');
+  return p[2] + '/' + p[1] + '/' + p[0];
+}
+function mostrarAviso(txt, tipo) {
+  var m = document.createElement('div');
+  m.className = 'msg msg-' + (tipo==='ok'?'ok':tipo==='err'?'err':'info');
+  m.style.cssText = 'position:fixed;top:70px;right:20px;z-index:9999;max-width:360px;box-shadow:0 4px 20px rgba(0,0,0,.2)';
+  m.textContent = txt;
+  document.body.appendChild(m);
+  setTimeout(function(){ m.style.opacity='0';m.style.transition='opacity .4s'; setTimeout(function(){ m.remove(); }, 400); }, 3500);
+}
+
+// ── PASO 1: ANÁLISIS DE VIABILIDAD ────────────────────────
+function analizarViabilidad() {
+  // Validaciones
+  var cliente = document.getElementById('f-cliente').value.trim();
+  var rama     = document.getElementById('f-rama').value;
+  var abogado  = document.getElementById('f-abogado').value;
+  var trans    = document.getElementById('f-transcripcion').value.trim();
+
+  if (!cliente) { alert('El nombre del cliente es obligatorio.'); return; }
+  if (!rama)    { alert('Seleccione la rama jurídica.'); return; }
+  if (!abogado) { alert('Seleccione el abogado responsable.'); return; }
+  if (!trans || trans.length < 50) { alert('La transcripción es demasiado corta. Por favor pegue el texto completo de la entrevista.'); return; }
+  if (!CFG.apiKey) { alert('Configure su API Key de Anthropic en ⚙️ Configuración.'); abrirConfig(); return; }
+
+  // Guardar datos del formulario
+  E.form = {
+    fecha:        document.getElementById('f-fecha').value || hoy(),
+    cliente:      cliente,
+    tel:          document.getElementById('f-tel').value.trim(),
+    email:        document.getElementById('f-email').value.trim(),
+    rama:         rama,
+    abogado:      abogado,
+    transcripcion: trans,
+  };
+
+  // Mostrar loading
+  document.getElementById('card-formulario').classList.add('hidden');
+  document.getElementById('card-loading-analisis').classList.remove('hidden');
+
+  var systemPrompt = 'Actuás como un abogado senior del Estudio BMB y Asociados de Rosario, Argentina, especializado en ' + rama + '. A partir de la transcripción de una primera entrevista con un potencial cliente, debés producir un análisis estructurado con exactamente estas secciones: 1) VIABILIDAD JURÍDICA: calificación (Alta / Media / Baja / No viable) con fundamento jurídico concreto y sin alucinaciones normativas. 2) PROYECCIÓN ECONÓMICA: estimación del valor económico potencial del caso para el estudio (honorarios proyectados y probabilidad de cobro) expresada en rangos, no en cifras exactas. 3) DOCUMENTACIÓN NECESARIA: listado de los documentos que el cliente debe aportar para avanzar. 4) RIESGOS Y ADVERTENCIAS: principales riesgos jurídicos o procesales detectados. 5) COMUNICACIÓN AL CLIENTE: texto listo para leer o enviar al cliente comunicando la decisión del estudio (aceptación, aceptación condicional sujeta a documentación, o rechazo decoroso). La veracidad es prioritaria sobre la completitud. Si la transcripción no contiene datos suficientes para alguna sección, indicarlo expresamente en lugar de completar con supuestos.';
+
+  llamarClaude(systemPrompt, 'Transcripción de la entrevista:\n\n' + trans, 3000)
+    .then(function(respuesta) {
+      E.analisis = respuesta;
+      document.getElementById('card-loading-analisis').classList.add('hidden');
+      mostrarAnalisis(respuesta);
+    })
+    .catch(function(err) {
+      document.getElementById('card-loading-analisis').classList.add('hidden');
+      document.getElementById('card-formulario').classList.remove('hidden');
+      alert('Error al llamar a la API de Claude:\n' + err.message + '\n\nVerifique su API Key en Configuración.');
+    });
+}
+
+function mostrarAnalisis(texto) {
+  // Detectar nivel de viabilidad
+  var viab = detectarViabilidad(texto);
+  var badgeClass = viab === 'Alta' ? 'viab-alta' : viab === 'Media' ? 'viab-media' : viab === 'Baja' ? 'viab-baja' : 'viab-no';
+  var badgeEmoji = viab === 'Alta' ? '✅' : viab === 'Media' ? '⚠️' : viab === 'Baja' ? '🔶' : '❌';
+  document.getElementById('viabilidad-badge').innerHTML = '<span class="viab ' + badgeClass + '">' + badgeEmoji + ' Viabilidad: ' + viab + '</span>';
+
+  // Formatear y mostrar el análisis
+  document.getElementById('analisis-contenido').innerHTML = formatearAnalisisSecciones(texto);
+  document.getElementById('card-analisis').classList.remove('hidden');
+}
+
+function detectarViabilidad(texto) {
+  var t = texto.toUpperCase();
+  // Busca la calificación en la sección de viabilidad
+  var match = t.match(/VIABILIDAD[^:]*:\s*(ALTA|MEDIA|BAJA|NO VIABLE)/);
+  if (match) return match[1] === 'NO VIABLE' ? 'No viable' : match[1].charAt(0) + match[1].slice(1).toLowerCase();
+  if (t.includes('ALTA')) return 'Alta';
+  if (t.includes('MEDIA')) return 'Media';
+  if (t.includes('BAJA')) return 'Baja';
+  return 'No determinada';
+}
+
+function formatearAnalisisSecciones(texto) {
+  // Divide el texto en las 5 secciones esperadas
+  var secciones = [
+    { key: 'VIABILIDAD', titulo: '1. Viabilidad Jurídica' },
+    { key: 'PROYECCI', titulo: '2. Proyección Económica' },
+    { key: 'DOCUMENTACI', titulo: '3. Documentación Necesaria' },
+    { key: 'RIESGOS', titulo: '4. Riesgos y Advertencias' },
+    { key: 'COMUNICACI', titulo: '5. Comunicación al Cliente' },
+  ];
+
+  var h = '';
+  var tUpper = texto.toUpperCase();
+
+  for (var i = 0; i < secciones.length; i++) {
+    var sec = secciones[i];
+    var startIdx = tUpper.indexOf(sec.key);
+    if (startIdx < 0) continue;
+    // Encontrar el inicio real (saltear el encabezado de sección)
+    var lineStart = texto.indexOf('\n', startIdx);
+    if (lineStart < 0) lineStart = startIdx + sec.key.length;
+    // Encontrar el fin (inicio de la siguiente sección o fin del texto)
+    var endIdx = texto.length;
+    for (var j = i+1; j < secciones.length; j++) {
+      var nextIdx = tUpper.indexOf(secciones[j].key, startIdx + 1);
+      if (nextIdx > 0 && nextIdx < endIdx) { endIdx = nextIdx; break; }
+    }
+    var contenido = texto.substring(lineStart, endIdx).trim();
+    h += '<div class="analisis-sec"><h3>' + sec.titulo + '</h3><p>' + esc(contenido) + '</p></div>';
+  }
+
+  // Si no se pudo parsear por secciones, mostrar el texto completo
+  if (!h) h = '<p style="font-size:13px;line-height:1.7;white-space:pre-wrap">' + esc(texto) + '</p>';
+
+  return h;
+}
+
+// ── DECISIONES ────────────────────────────────────────────
+function aceptarCausa() {
+  E.decision = 'aceptar';
+  document.getElementById('card-analisis').classList.add('hidden');
+  irAPaso2();
+}
+
+function solicitarMasInfo() {
+  E.decision = 'info';
+  var comunicado = extraerComunicado(E.analisis);
+  document.getElementById('decision-tt').textContent = '📋 Decisión: Solicitar más información';
+  document.getElementById('decision-msg').className = 'msg msg-warn';
+  document.getElementById('decision-msg').textContent = 'Se solicitará documentación adicional al cliente antes de tomar una decisión definitiva.';
+  document.getElementById('comunicado-texto').textContent = comunicado || '(Ver sección "Comunicación al cliente" en el análisis de viabilidad)';
+  document.getElementById('card-analisis').classList.add('hidden');
+  document.getElementById('card-decision-final').classList.remove('hidden');
+}
+
+function rechazarCausa() {
+  if (!confirm('¿Confirma el rechazo de esta causa?\nEsta acción no afecta al sistema, solo registra su decisión.')) return;
+  E.decision = 'rechazar';
+  var comunicado = extraerComunicado(E.analisis);
+  document.getElementById('decision-tt').textContent = '✕ Decisión: Causa rechazada';
+  document.getElementById('decision-msg').className = 'msg msg-err';
+  document.getElementById('decision-msg').textContent = 'La causa fue rechazada. No se creará ningún expediente en el sistema.';
+  document.getElementById('comunicado-texto').textContent = comunicado || '(Ver sección "Comunicación al cliente" en el análisis de viabilidad)';
+  document.getElementById('card-analisis').classList.add('hidden');
+  document.getElementById('card-decision-final').classList.remove('hidden');
+}
+
+function extraerComunicado(texto) {
+  var t = texto.toUpperCase();
+  var idx = t.indexOf('COMUNICACI');
+  if (idx < 0) return '';
+  var lineStart = texto.indexOf('\n', idx);
+  if (lineStart < 0) return '';
+  return texto.substring(lineStart).trim();
+}
+
+// ── PASO 2: INFORME PRELIMINAR ────────────────────────────
+function irAPaso2() {
+  irPaso(2);
+
+  var systemPrompt = 'Actuás como abogado senior del Estudio BMB y Asociados, Rosario, Argentina. Se ha aceptado un caso de la rama ' + E.form.rama + '. Con base en la transcripción de la entrevista y el análisis de viabilidad previo, generá un informe preliminar estructurado con exactamente estas secciones:\n\n1) DATOS DE LA CAUSA: partes involucradas, hechos relevantes, fecha del siniestro o hecho generador.\n2) ENCUADRE JURÍDICO PRELIMINAR: normas aplicables (leyes, decretos, convenios), vía procesal recomendada.\n3) ESTRATEGIA INICIAL RECOMENDADA: pasos estratégicos concretos a seguir.\n4) DOCUMENTACIÓN PENDIENTE DE APORTAR: lista detallada de lo que el cliente debe presentar.\n5) PRÓXIMOS PASOS PROCESALES SUGERIDOS: acciones concretas a tomar en los próximos 30-60 días.\n6) PLAZO ESTIMADO DE TRAMITACIÓN: estimación realista con rangos, sin garantías.\n\nSea concreto y práctico. Evite generalidades. Indique cuando la información es insuficiente.';
+
+  var userContent = 'TRANSCRIPCIÓN DE LA ENTREVISTA:\n\n' + E.form.transcripcion + '\n\n---\n\nANÁLISIS DE VIABILIDAD PREVIO:\n\n' + E.analisis;
+
+  llamarClaude(systemPrompt, userContent, 4000)
+    .then(function(respuesta) {
+      E.informe = respuesta;
+      document.getElementById('card-loading-informe').classList.add('hidden');
+      mostrarInforme(respuesta);
+    })
+    .catch(function(err) {
+      document.getElementById('card-loading-informe').classList.add('hidden');
+      alert('Error al generar el informe:\n' + err.message);
+      irPaso(1);
+    });
+}
+
+function mostrarInforme(texto) {
+  document.getElementById('informe-contenido').innerHTML = formatearInformeSecciones(texto);
+  document.getElementById('card-informe').classList.remove('hidden');
+  document.getElementById('btn-continuar-p3').style.display = 'flex';
+}
+
+function formatearInformeSecciones(texto) {
+  var secciones = [
+    { key: 'DATOS DE LA CAUSA',          titulo: '📋 Datos de la Causa',                emoji: '📋' },
+    { key: 'ENCUADRE JUR',               titulo: '⚖️ Encuadre Jurídico Preliminar',      emoji: '⚖️' },
+    { key: 'ESTRATEGIA',                  titulo: '🎯 Estrategia Inicial Recomendada',    emoji: '🎯' },
+    { key: 'DOCUMENTACI',                 titulo: '📂 Documentación Pendiente',           emoji: '📂' },
+    { key: 'PRÓXIMOS PASOS',              titulo: '📅 Próximos Pasos Procesales',         emoji: '📅' },
+    { key: 'PROXIMOS PASOS',              titulo: '📅 Próximos Pasos Procesales',         emoji: '📅' },
+    { key: 'PLAZO ESTIMADO',              titulo: '⏱️ Plazo Estimado de Tramitación',     emoji: '⏱️' },
+  ];
+
+  var h = '';
+  var tUpper = texto.toUpperCase();
+  var procesadas = [];
+
+  for (var i = 0; i < secciones.length; i++) {
+    var sec = secciones[i];
+    if (procesadas.indexOf(sec.titulo) >= 0) continue;
+    var startIdx = tUpper.indexOf(sec.key);
+    if (startIdx < 0) continue;
+    procesadas.push(sec.titulo);
+    var lineStart = texto.indexOf('\n', startIdx);
+    if (lineStart < 0) lineStart = startIdx + sec.key.length;
+    var endIdx = texto.length;
+    for (var j = 0; j < secciones.length; j++) {
+      if (j === i) continue;
+      var nextIdx = tUpper.indexOf(secciones[j].key, startIdx + 1);
+      if (nextIdx > 0 && nextIdx < endIdx) endIdx = nextIdx;
+    }
+    var contenido = texto.substring(lineStart, endIdx).trim();
+    h += '<div class="informe-sec"><h3>' + sec.titulo + '</h3><p>' + esc(contenido) + '</p></div>';
+  }
+
+  if (!h) h = '<p style="font-size:13px;line-height:1.7;white-space:pre-wrap">' + esc(texto) + '</p>';
+  return h;
+}
+
+// ── PDF ────────────────────────────────────────────────────
+function descargarPDF() {
+  var apellidoNombre = E.form.cliente || 'cliente';
+  var w = window.open('', '_blank');
+  if (!w) { alert('El navegador bloqueó la ventana emergente. Permita ventanas emergentes para este sitio e intente nuevamente.'); return; }
+  var html = generarHTMLParaPDF(apellidoNombre);
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function() { w.print(); }, 700);
+}
+
+function generarHTMLParaPDF(apellidoNombre) {
+  return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    '<title>Informe Preliminar — ' + apellidoNombre + '</title>' +
+    '<style>' +
+    'body{font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#1a1a1a;padding:2cm;max-width:21cm;margin:0 auto}' +
+    'h1{font-size:18px;color:#1A4B8C;border-bottom:2px solid #1A4B8C;padding-bottom:8px;margin-bottom:4px}' +
+    '.sub{font-size:11px;color:#666;margin-bottom:24px}' +
+    'h2{font-size:13px;color:#1A4B8C;margin-top:20px;margin-bottom:6px;border-left:3px solid #C9A84C;padding-left:8px}' +
+    'p{margin-bottom:8px;white-space:pre-wrap}' +
+    '.meta{background:#f5f5f5;border-radius:4px;padding:10px;margin-bottom:20px;font-size:11px}' +
+    '.meta strong{color:#1A4B8C}' +
+    '@media print{body{padding:1cm}}' +
+    '</style></head><body>' +
+    '<h1>Informe Preliminar de Causa</h1>' +
+    '<div class="sub">BMB y Asociados · Rosario, Santa Fe · Generado el ' + fF(hoy()) + '</div>' +
+    '<div class="meta">' +
+    '<strong>Cliente:</strong> ' + E.form.cliente + ' &nbsp;|&nbsp; ' +
+    '<strong>Fecha de entrevista:</strong> ' + fF(E.form.fecha) + ' &nbsp;|&nbsp; ' +
+    '<strong>Rama:</strong> ' + E.form.rama + ' &nbsp;|&nbsp; ' +
+    '<strong>Responsable:</strong> ' + E.form.abogado +
+    '</div>' +
+    '<div style="white-space:pre-wrap">' + E.informe.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+    '</body></html>';
+}
+
+// ── GOOGLE DRIVE ──────────────────────────────────────────
+function onGISCargado() {
+  gisListo = true;
+  if (CFG.gcid) iniciarGIS();
+}
+
+function iniciarGIS() {
+  if (!gisListo || !window.google || !google.accounts) return;
+  if (!CFG.gcid) return;
+  try {
+    gisCliente = google.accounts.oauth2.initTokenClient({
+      client_id: CFG.gcid,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: function(resp) {
+        if (resp.error) {
+          actualizarEstadoDrive('err', '✕ Error: ' + resp.error);
+          return;
+        }
+        E.driveToken = resp.access_token;
+        actualizarEstadoDrive('ok', '✅ Drive conectado');
+        mostrarAviso('Google Drive conectado correctamente.', 'ok');
+      }
+    });
+  } catch(e) {
+    console.warn('Error iniciando GIS:', e.message);
+  }
+}
+
+function conectarDrive() {
+  if (!CFG.gcid) {
+    alert('Configure el Client ID de Google OAuth en ⚙️ Configuración antes de conectar Drive.');
+    abrirConfig();
+    return;
+  }
+  if (!gisListo) {
+    alert('El script de Google no terminó de cargar. Espere unos segundos e intente nuevamente.');
+    return;
+  }
+  iniciarGIS();
+  if (gisCliente) {
+    actualizarEstadoDrive('prog', '⏳ Solicitando acceso...');
+    gisCliente.requestAccessToken({prompt: ''});
+  } else {
+    alert('No se pudo iniciar el cliente OAuth. Verifique el Client ID en Configuración.');
+  }
+}
+
+function actualizarEstadoDrive(tipo, texto) {
+  var el = document.getElementById('drive-estado');
+  if (!el) return;
+  el.className = 'drive-status ds-' + tipo;
+  el.textContent = texto;
+}
+
+async function guardarEnDrive() {
+  if (!E.driveToken) {
+    mostrarAviso('Conecte Google Drive primero.', 'err');
+    return;
+  }
+  if (!E.informe) {
+    mostrarAviso('No hay informe para guardar.', 'err');
+    return;
+  }
+
+  var btn = document.getElementById('btn-drive');
+  btn.disabled = true;
+  btn.textContent = '⏳ Guardando...';
+
+  try {
+    var casosId = await buscarCarpetaCasos();
+    if (!casosId) throw new Error('No se encontró la carpeta "CASOS" en Drive. Verifique que existe o configure su ID en Ajustes.');
+
+    // Crear carpeta del caso
+    var nombreCarpeta = generarNombreCarpeta();
+    var carpeta = await crearCarpeta(nombreCarpeta, casosId);
+    E.carpetaId = carpeta.id;
+    E.carpetaUrl = 'https://drive.google.com/drive/folders/' + carpeta.id;
+
+    // Crear subcarpetas
+    await crearCarpeta('Documental del cliente', carpeta.id);
+    await crearCarpeta('Escritos', carpeta.id);
+    var subcInformes = await crearCarpeta('Informes Claude', carpeta.id);
+
+    // Subir informe como Google Doc
+    var nombreDoc = 'Informe Preliminar — ' + E.form.cliente + ' (' + fF(hoy()) + ')';
+    var doc = await subirComoDoc(nombreDoc, generarHTMLParaPDF(E.form.cliente), subcInformes.id);
+    E.informeDocId = doc.id;
+    E.informeDocUrl = 'https://docs.google.com/document/d/' + doc.id;
+
+    btn.textContent = '✅ Guardado';
+    var msgDiv = document.getElementById('drive-msg-paso2');
+    msgDiv.innerHTML = '<div class="msg msg-ok">✅ Informe guardado en Drive. <a href="' + E.carpetaUrl + '" target="_blank" style="color:var(--navy);font-weight:600">Abrir carpeta →</a></div>';
+    msgDiv.classList.remove('hidden');
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '☁ Guardar en Drive';
+    var msgDiv = document.getElementById('drive-msg-paso2');
+    msgDiv.innerHTML = '<div class="msg msg-err">✕ Error al guardar en Drive: ' + esc(e.message) + '</div>';
+    msgDiv.classList.remove('hidden');
+  }
+}
+
+function generarNombreCarpeta() {
+  var rama = (E.form.rama || '').split('/')[0].trim().toUpperCase();
+  var apellidoNombre = (E.form.cliente || 'Cliente').toUpperCase();
+  return rama + ' — ' + apellidoNombre;
+}
+
+async function buscarCarpetaCasos() {
+  // Primero: usar ID configurado manualmente
+  if (CFG.casosId) return CFG.casosId;
+  // Segundo: buscar por nombre "CASOS"
+  var resp = await fetch(
+    "https://www.googleapis.com/drive/v3/files?q=name%3D'CASOS'%20and%20mimeType%3D'application%2Fvnd.google-apps.folder'%20and%20trashed%3Dfalse&fields=files(id%2Cname)&pageSize=5",
+    { headers: { 'Authorization': 'Bearer ' + E.driveToken } }
+  );
+  if (!resp.ok) throw new Error('Error buscando carpeta CASOS: ' + resp.status);
+  var data = await resp.json();
+  if (data.files && data.files.length > 0) return data.files[0].id;
+  return null;
+}
+
+async function crearCarpeta(nombre, parentId) {
+  var meta = { name: nombre, mimeType: 'application/vnd.google-apps.folder' };
+  if (parentId) meta.parents = [parentId];
+  var resp = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + E.driveToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(meta)
+  });
+  if (!resp.ok) {
+    var err = await resp.json();
+    throw new Error('Error creando carpeta "' + nombre + '": ' + (err.error && err.error.message || resp.status));
+  }
+  return resp.json();
+}
+
+async function subirComoDoc(nombre, htmlContent, parentId) {
+  var boundary = 'bmb_boundary_' + Date.now();
+  var meta = JSON.stringify({ name: nombre, mimeType: 'application/vnd.google-apps.document', parents: [parentId] });
+  var body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + meta +
+             '\r\n--' + boundary + '\r\nContent-Type: text/html\r\n\r\n' + htmlContent +
+             '\r\n--' + boundary + '--';
+  var resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + E.driveToken,
+      'Content-Type': 'multipart/related; boundary=' + boundary
+    },
+    body: body
+  });
+  if (!resp.ok) {
+    var err = await resp.json();
+    throw new Error('Error subiendo documento: ' + (err.error && err.error.message || resp.status));
+  }
+  return resp.json();
+}
+
+// ── PASO 3: ALTA EN SISTEMA ───────────────────────────────
+function irAPaso3() {
+  irPaso(3);
+  precargarFormularioAlta();
+}
+
+function precargarFormularioAlta() {
+  // Carátula automática: "Apellido c/ empresa s/ Rama"
+  var palabras = (E.form.cliente || '').split(' ');
+  var apellido = palabras[palabras.length - 1] || E.form.cliente;
+  var caratula = apellido + ' c/ (pendiente) s/ ' + (E.form.rama || 'Daños y Perjuicios');
+  document.getElementById('a-caratula').value = caratula;
+
+  // Carpeta Drive
+  var nomCarpeta = generarNombreCarpeta();
+  document.getElementById('a-carpeta').value = nomCarpeta;
+
+  // Responsable (del formulario)
+  var selResp = document.getElementById('a-resp');
+  for (var i = 0; i < selResp.options.length; i++) {
+    if (selResp.options[i].value === E.form.abogado) { selResp.selectedIndex = i; break; }
+  }
+
+  // Tipo de causa
+  var selTipo = document.getElementById('a-tipo');
+  var ramaLow = (E.form.rama || '').toLowerCase();
+  for (var j = 0; j < selTipo.options.length; j++) {
+    if (selTipo.options[j].value.toLowerCase().indexOf(ramaLow.split('/')[0].trim()) >= 0) {
+      selTipo.selectedIndex = j; break;
+    }
+  }
+
+  // Plazo por defecto: 15 días
+  actualizarPlazoFecha();
+
+  // Estado Drive
+  if (E.driveToken && E.carpetaId) actualizarEstadoDrive('ok', '✅ Carpeta creada');
+  else if (E.driveToken) actualizarEstadoDrive('ok', '✅ Drive conectado');
+}
+
+function actualizarPlazoFecha() {
+  var sel = document.getElementById('a-plazo-sel').value;
+  var fg = document.getElementById('fg-plazo-manual');
+  if (sel === 'manual') {
+    fg.classList.remove('hidden');
+    document.getElementById('a-plazo-fecha').value = fechaMasN(15);
+  } else {
+    fg.classList.add('hidden');
+    document.getElementById('a-plazo-fecha').value = fechaMasN(parseInt(sel));
+  }
+}
+
+function getFechaAgendamiento() {
+  var sel = document.getElementById('a-plazo-sel').value;
+  if (sel === 'manual') return document.getElementById('a-plazo-fecha').value;
+  return fechaMasN(parseInt(sel));
+}
+
+async function confirmarAlta() {
+  var caratula = document.getElementById('a-caratula').value.trim();
+  var resp     = document.getElementById('a-resp').value;
+  var tarea    = document.getElementById('a-tarea').value.trim();
+  var fechaAg  = getFechaAgendamiento();
+
+  if (!caratula) { alert('La carátula es obligatoria.'); return; }
+  if (!tarea)    { alert('El texto del primer agendamiento es obligatorio.'); return; }
+  if (!fechaAg)  { alert('Seleccione una fecha para el agendamiento.'); return; }
+
+  // Mostrar loading
+  document.getElementById('card-loading-alta').classList.remove('hidden');
+  document.querySelector('#contenedor-paso-3 .card:first-child').classList.add('hidden');
+
+  var resultados = [];
+  var hayError = false;
+
+  // ── A) Google Drive: crear estructura si no se hizo antes ──
+  if (E.driveToken && !E.carpetaId) {
+    try {
+      document.getElementById('msg-loading-alta').textContent = 'Creando carpeta en Google Drive...';
+      var casosId = await buscarCarpetaCasos();
+      if (casosId) {
+        var nomCarpeta = document.getElementById('a-carpeta').value.trim() || generarNombreCarpeta();
+        var carpeta    = await crearCarpeta(nomCarpeta, casosId);
+        E.carpetaId  = carpeta.id;
+        E.carpetaUrl = 'https://drive.google.com/drive/folders/' + carpeta.id;
+        await crearCarpeta('Documental del cliente', carpeta.id);
+        await crearCarpeta('Escritos', carpeta.id);
+        var subcInf = await crearCarpeta('Informes Claude', carpeta.id);
+        if (E.informe) {
+          var doc = await subirComoDoc('Informe Preliminar — ' + E.form.cliente, generarHTMLParaPDF(E.form.cliente), subcInf.id);
+          E.informeDocId = doc.id;
+          E.informeDocUrl = 'https://docs.google.com/document/d/' + doc.id;
+        }
+        resultados.push({ ok: true, texto: 'Carpeta "' + nomCarpeta + '" creada en Google Drive con subcarpetas y el informe.', url: E.carpetaUrl });
+      } else {
+        resultados.push({ ok: false, texto: 'No se encontró la carpeta "CASOS" en Drive. La causa se cargó en BMB 2.0 igualmente.' });
+      }
+    } catch(e) {
+      resultados.push({ ok: false, texto: 'Error Drive: ' + e.message });
+      hayError = true;
+    }
+  } else if (E.carpetaId) {
+    resultados.push({ ok: true, texto: 'Informe ya guardado en Google Drive.', url: E.carpetaUrl });
+  }
+
+  // ── B) Integración con BMB 2.0 ─────────────────────────
+  document.getElementById('msg-loading-alta').textContent = 'Registrando causa en BMB 2.0...';
+  var bmbResult = integrarConBMB({
+    caratula:      caratula,
+    tipo:          document.getElementById('a-tipo').value,
+    resp:          resp,
+    obs:           document.getElementById('a-obs').value,
+    tarea:         tarea,
+    fechaTarea:    fechaAg,
+    fechaInicio:   E.form.fecha || hoy(),
+  });
+  resultados.push(bmbResult);
+
+  // ── C) Mostrar resultados ──────────────────────────────
+  document.getElementById('card-loading-alta').classList.add('hidden');
+  mostrarResultadoAlta(resultados);
+}
+
+function integrarConBMB(datos) {
+  try {
+    var b2raw = localStorage.getItem('b2');
+    var db = null;
+    if (b2raw) {
+      db = JSON.parse(b2raw);
+      if (!db || !db.procesos) db = null;
+    }
+
+    var pid  = uid();
+    var agid = uid();
+
+    var nuevoProceso = {
+      id: pid, ca: datos.caratula, actor: '', demandado: '',
+      ti: datos.tipo, pr: 'alta', re: datos.resp, par: datos.resp,
+      ex: '', ju: '', ins: '', mo: '', nc: '', fi: datos.fechaInicio,
+      um: datos.fechaInicio, ob: datos.obs || '', conf: false, ar: false,
+      proximaTarea: datos.tarea, fechaTarea: datos.fechaTarea,
+      pin: false, foco: false
+    };
+
+    var nuevaAgenda = {
+      id: agid, pid: pid, resp: datos.resp, f: datos.fechaTarea,
+      ho: '', co: datos.tarea, nota: '', he: false, fReal: '', conf: false
+    };
+
+    if (db) {
+      // BMB 2.0 está instalado en este navegador — integración directa
+      db.procesos.push(nuevoProceso);
+      db.agendas.push(nuevaAgenda);
+      localStorage.setItem('b2', JSON.stringify(db));
+      return {
+        ok: true,
+        texto: 'Causa "' + datos.caratula + '" creada en BMB 2.0. Abra o recargue BMB 2.0 para verla (puede necesitar ☁ Sync para sincronizar con la nube).',
+      };
+    } else {
+      // BMB 2.0 no está en este navegador — exportar JSON
+      var exportData = { procesos: [nuevoProceso], agendas: [nuevaAgenda], _intake: true, _fecha: hoy() };
+      var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'BMB_intake_' + datos.caratula.substr(0,30).replace(/[^a-zA-Z0-9]/g,'_') + '_' + hoy() + '.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      return {
+        ok: true,
+        texto: 'BMB 2.0 no detectado en este navegador. Se descargó un archivo JSON. Impórtelo en BMB 2.0 desde Sistema → Backup/Importar.',
+        warn: true
+      };
+    }
+  } catch(e) {
+    return { ok: false, texto: 'Error al registrar en BMB 2.0: ' + e.message };
+  }
+}
+
+function mostrarResultadoAlta(resultados) {
+  var h = '<h3>✅ Alta completada</h3>';
+  resultados.forEach(function(r) {
+    h += '<div class="alta-item">';
+    h += '<span class="alta-ico">' + (r.ok ? (r.warn ? '⚠️' : '✅') : '✕') + '</span>';
+    h += '<span>' + esc(r.texto);
+    if (r.url) h += ' <a class="alta-link" href="' + r.url + '" target="_blank">Abrir en Drive →</a>';
+    h += '</span></div>';
+  });
+  document.getElementById('alta-detalle').innerHTML = h;
+  document.getElementById('card-alta-resultado').classList.remove('hidden');
+}
+
+// ── CLAUDE API ────────────────────────────────────────────
+function llamarClaude(systemPrompt, userContent, maxTokens) {
+  return fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type':                        'application/json',
+      'x-api-key':                           CFG.apiKey,
+      'anthropic-version':                   '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model:      CFG.modelo || 'claude-opus-4-6',
+      max_tokens: maxTokens || 3000,
+      system:     systemPrompt,
+      messages:   [{ role: 'user', content: userContent }]
+    })
+  })
+  .then(function(resp) {
+    if (!resp.ok) return resp.json().then(function(e){ throw new Error(e.error ? e.error.message : 'HTTP ' + resp.status); });
+    return resp.json();
+  })
+  .then(function(data) {
+    if (!data.content || !data.content[0]) throw new Error('Respuesta vacía de la API');
+    return data.content[0].text;
+  });
+}
+
+// ── RESET ──────────────────────────────────────────────────
+function nuevoIntake() {
+  E = { paso:1, form:{}, analisis:'', decision:'', informe:'', driveToken: E.driveToken, casosId: E.casosId, carpetaId:null, subcarpetas:{}, informeDocId:null, informeDocUrl:null, carpetaUrl:null };
+  // Restaurar vista paso 1
+  document.getElementById('card-formulario').classList.remove('hidden');
+  document.getElementById('card-loading-analisis').classList.add('hidden');
+  document.getElementById('card-analisis').classList.add('hidden');
+  document.getElementById('card-decision-final').classList.add('hidden');
+  document.getElementById('card-loading-informe').classList.remove('hidden');
+  document.getElementById('card-informe').classList.add('hidden');
+  document.getElementById('btn-continuar-p3').style.display = 'none';
+  var dm = document.getElementById('drive-msg-paso2');
+  dm.innerHTML=''; dm.classList.add('hidden');
+  var la = document.getElementById('card-loading-alta');
+  if(la) la.classList.add('hidden');
+  var ra = document.getElementById('card-alta-resultado');
+  if(ra) ra.classList.add('hidden');
+  var fc = document.querySelector('#contenedor-paso-3 .card:first-child');
+  if(fc) fc.classList.remove('hidden');
+  // Reiniciar campos del formulario
+  document.getElementById('f-cliente').value = '';
+  document.getElementById('f-tel').value = '';
+  document.getElementById('f-email').value = '';
+  document.getElementById('f-transcripcion').value = '';
+  document.getElementById('f-rama').value = '';
+  document.getElementById('f-abogado').value = '';
+  document.getElementById('f-fecha').value = hoy();
+  irPaso(1);
+}
+
+// ── INICIALIZACIÓN ─────────────────────────────────────────
+function init() {
+  cargarConfig();
+  checkConfig();
+  document.getElementById('f-fecha').value = hoy();
+  // GIS se carga async — el callback onGISCargado() lo maneja
+  // Si ya estaba cargado (recarga rápida):
+  if (window.google && window.google.accounts) onGISCargado();
+}
+
+init();
+</script>
+</body>
+</html>
