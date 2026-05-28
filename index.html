@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%230F1B2D'/><text y='72' x='50' text-anchor='middle' font-size='58' font-family='system-ui,sans-serif' font-weight='700' fill='%23C9A84C'>B</text></svg>">
-<title>BMB 2.0 v2.6 — Sistema Juridico BMB y Asociados</title>
+<title>BMB 2.0 v2.11 — Sistema Juridico BMB y Asociados</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif}
 :root{--navy:#1A4B8C;--navy2:#1a5fa8;--gold:#C9A84C;--red:#C0392B;--amber:#D97706;--green:#2D7A4F;--cream:#F8F5EF;--muted:#6b7a8d;--border:#d0d8e4;--text:#1a2535;--textl:#4a5568;--foco-bg:#FFF7ED;--foco-bd:#F97316;--foco-tx:#C2410C;--lor:#7C3AED}
@@ -187,7 +187,7 @@ textarea.fc{min-height:80px;resize:vertical}
 <div class="lp" id="LP">
   <div class="lc">
     <div class="lm" onclick="intentarNavHome()">BMB<span>.</span></div>
-    <div class="ls">Sistema Juridico v2.10 · BMB y Asociados · Rosario</div>
+    <div class="ls">Sistema Juridico v2.11 · BMB y Asociados · Rosario</div>
     <input type="text" id="lu" placeholder="Usuario" autocomplete="username"/>
     <input type="password" id="lp2" placeholder="Contrasena" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"/>
     <button class="btn-login" onclick="login()">Ingresar al sistema</button>
@@ -214,6 +214,7 @@ textarea.fc{min-height:80px;resize:vertical}
       <div class="ni" onclick="nav('reportes')">📄 Reportes e impresion</div>
       <div class="ni" id="navLorenzo" onclick="nav('lorenzo')" style="display:none">💙 Lorenzo</div>
       <div class="ni" id="navFinanzas" onclick="nav('finanzas')" style="display:none">💰 Finanzas BMB</div>
+      <div class="ni" id="navReagendar" onclick="nav('reagendar')" style="display:none">🔄 Reagendar</div>
       <div class="ns">IA</div>
       <div class="ni" onclick="nav('ia')">🤖 Asistente IA</div>
       <div class="ns">Config</div>
@@ -711,7 +712,7 @@ var USUARIOS_BASE=[{id:'banuls',pass:'bmb2024',nombre:'Dr. Emanuel Banuls',rol:'
 var INSTANCIAS=['SRT (Superintendencia de Riesgos del Trabajo)','Ministerio de Trabajo','Extrajudicial - Accidente de transito','Extrajudicial - Laboral','Extrajudicial - Inmobiliario','Primera Instancia Judicial','Segunda Instancia - Camara','Tercera Instancia - CSJSF','Oficina de Procesos Sucesorios'];
 var JUZGADOS_BASE=['Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 3 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 4 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 5 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 6 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 7 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 8 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 9 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 10 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 11 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 12 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 13 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 14 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 15 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 16 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 17 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 18 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 19 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 20 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 21 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 22 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 1 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 2 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 3 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 4 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 5 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 6 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 7 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 8 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 9 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 10 - Rosario','Juzgado Unipersonal de Familia N° 1 - Rosario','Juzgado Unipersonal de Familia N° 2 - Rosario','Juzgado Unipersonal de Familia N° 3 - Rosario','Juzgado Unipersonal de Familia N° 4 - Rosario','Juzgado Unipersonal de Familia N° 5 - Rosario','Juzgado Unipersonal de Familia N° 6 - Rosario','Juzgado Unipersonal de Familia N° 7 - Rosario','Juzgado Unipersonal de Familia N° 8 - Rosario','Juzgado Unipersonal de Familia N° 9 - Rosario','Juzgado Unipersonal de Familia N° 10 - Rosario','Juzgado Unipersonal de Familia N° 11 - Rosario','Juzgado Unipersonal de Familia N° 12 - Rosario','Juzgado de Primera Instancia de Distrito en Ejecucion Civil N° 1 - Rosario','Juzgado de Primera Instancia de Distrito en Ejecucion Civil N° 2 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 1 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 2 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 3 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 4 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 5 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 6 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 7 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 8 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 9 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 10 - Rosario','Camara de Apelaciones en lo Laboral Sala I - Rosario','Camara de Apelaciones en lo Laboral Sala II - Rosario','Camara de Apelaciones en lo Laboral Sala III - Rosario','Camara de Apelacion en lo Contencioso Administrativo - Rosario','Camara de Apelacion en lo Penal Sala I - Rosario','Camara de Apelacion en lo Penal Sala II - Rosario','Camara de Apelacion en lo Penal Sala III - Rosario','Camara de Apelacion en lo Penal Sala IV - Rosario','Camara de Apelacion de Ejecucion Penal y Supervision Carcelaria - Rosario','Juzgado de Primera Instancia de Circuito de Arroyo Seco','Juzgado de Primera Instancia de Circuito de Villa Gobernador Galvez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 1 - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 2 - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 3 - Canada de Gomez','Juzgado de Primera Instancia de Familia - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 1 - Casilda','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 2 - Casilda','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 3 - Casilda','Juzgado de Primera Instancia de Familia - Casilda','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - San Lorenzo','Juzgado de Primera Instancia de Familia - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Laboral - San Lorenzo','Juzgado de Primera Instancia de Circuito - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - Villa Constitucion','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - Villa Constitucion','Juzgado de Primera Instancia de Familia - Villa Constitucion','Oficina de Procesos Sucesorios - Rosario','SRT - Rosario','Ministerio de Trabajo - Rosario','Tribunal en lo Laboral N° 2 - San Nicolas','Tribunal en lo Laboral N° 3 - San Nicolas','Asesoria de Menores N° 1 - Rosario','Extrajudicial'];
 var LOR_CATS=['Turno medico','Fonoaudiologia','Psicopedagogia','Psicologia','Gimnasia','Escuela','Cumpleanos','Evento especial','Otro'];
-var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],juzgados:JUZGADOS_BASE.slice(),tp:['Accidente de Trabajo LRT','Enfermedad Laboral LRT','Laboral - Cobro de Pesos','Laboral - Despido','Sucesion','Danos y Perjuicios','Derecho Inmobiliario - Locacion','Derecho Inmobiliario - Usucapion','Cobro de Pesos','Defensa del Consumidor','SRT','Ministerio de Trabajo','Extrajudicial','Ejecutivo','Divorcio','Alimentos','Otro'],usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
+var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],reagendSnap:[],juzgados:JUZGADOS_BASE.slice(),tp:['Accidente de Trabajo LRT','Enfermedad Laboral LRT','Laboral - Cobro de Pesos','Laboral - Despido','Sucesion','Danos y Perjuicios','Derecho Inmobiliario - Locacion','Derecho Inmobiliario - Usucapion','Cobro de Pesos','Defensa del Consumidor','SRT','Ministerio de Trabajo','Extrajudicial','Ejecutivo','Divorcio','Alimentos','Otro'],usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
 var CU=null,CS='dash',_histNav=[],_listadoFiltrado=[];
 var fR2='',fT2='',fB2='',fP2='',fI2='';
 function sv(){
@@ -732,6 +733,7 @@ function ld(){
     if(p.pinOrder)DB.pinOrder=p.pinOrder;
     if(p.alOrder)DB.alOrder=p.alOrder;
     if(p.finanzas)DB.finanzas=p.finanzas;
+    if(p.reagendSnap)DB.reagendSnap=p.reagendSnap;
     if(p.juzgados&&p.juzgados.length){var mg=JUZGADOS_BASE.slice();p.juzgados.forEach(function(j){if(mg.indexOf(j)<0)mg.push(j);});DB.juzgados=mg;}
     if(p.tp&&p.tp.length)DB.tp=p.tp;
     if(p.usuarios&&p.usuarios.length){DB.usuarios=p.usuarios;var uD=DB.usuarios.find(function(u){return u.id==='dacenzo';});if(uD)uD.nombre='Dr. Nazareno Dacenzo';USUARIOS_BASE.forEach(function(ub){var ex=DB.usuarios.find(function(u){return u.id===ub.id;});if(!ex)DB.usuarios.push(JSON.parse(JSON.stringify(ub)));});}
@@ -810,7 +812,7 @@ function login(){
   CU=f;document.getElementById('le').classList.add('hidden');document.getElementById('LP').classList.add('hidden');document.getElementById('AL').classList.remove('hidden');
   document.getElementById('sNombre').textContent=f.nombre;document.getElementById('sRol').textContent=rolLabel(f.rol);
   document.getElementById('TD').textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  if(f.rol==='admin'){var nl=document.getElementById('navLorenzo');if(nl)nl.style.display='flex';var nf=document.getElementById('navFinanzas');if(nf)nf.style.display='flex';}
+  if(f.rol==='admin'){var nl=document.getElementById('navLorenzo');if(nl)nl.style.display='flex';var nf=document.getElementById('navFinanzas');if(nf)nf.style.display='flex';var nr=document.getElementById('navReagendar');if(nr)nr.style.display='flex';}
   var bs=document.getElementById('btnSync');if(bs)bs.style.display='flex';
   pinRestore();actualizarBadge();mostrarBanner();nav('dash');
   if(!window._autoSyncInt)window._autoSyncInt=setInterval(function(){
@@ -837,12 +839,12 @@ function navAtras(){if(_histNav.length>1){_histNav.pop();var prev=_histNav[_hist
 function nav(s){
   CS=s;_histNav.push(s);if(_histNav.length>20)_histNav=_histNav.slice(-20);
   document.querySelectorAll('.ni').forEach(function(e){e.classList.remove('active');});
-  var ts={dash:'Panel Principal',proc:'Procesos Activos',agenda:'Agenda Global',procuracion:'Procuracion Global',venc:'Audiencias y Vencimientos',interv:'Intervinientes',arch:'Causas Archivadas',alertas:'Panel de Alertas',reportes:'Reportes e Impresion',lorenzo:'Modulo Lorenzo',finanzas:'Finanzas BMB',ia:'Asistente IA',tab:'Tablas',usr:'Usuarios',backup:'Exportar / Importar'};
+  var ts={dash:'Panel Principal',proc:'Procesos Activos',agenda:'Agenda Global',procuracion:'Procuracion Global',venc:'Audiencias y Vencimientos',interv:'Intervinientes',arch:'Causas Archivadas',alertas:'Panel de Alertas',reportes:'Reportes e Impresion',lorenzo:'Modulo Lorenzo',finanzas:'Finanzas BMB',reagendar:'Reagendamiento Automatico',ia:'Asistente IA',tab:'Tablas',usr:'Usuarios',backup:'Exportar / Importar'};
   document.getElementById('TT').textContent=ts[s]||s;
   var nis=document.querySelectorAll('.ni');
   var im={dash:0,proc:1,agenda:2,procuracion:3,venc:4,interv:5,arch:6,alertas:7,reportes:8,ia:9,tab:10,usr:11,backup:12};
   if(im[s]!==undefined&&nis[im[s]])nis[im[s]].classList.add('active');
-  var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzo,finanzas:rFinanzas,ia:rIA,tab:rTab,usr:rUsr,backup:rBackup};
+  var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzo,finanzas:rFinanzas,reagendar:rReagendar,ia:rIA,tab:rTab,usr:rUsr,backup:rBackup};
   if(fns[s])fns[s]();
   var b=document.getElementById('btnAtras');if(b)b.style.opacity=_histNav.length>1?'1':'0.4';
 }
@@ -881,6 +883,8 @@ function rDash(){
   h+='<div class="sc sinpa"><div class="sn">'+sinPA.length+'</div><div class="sl">Sin proxima tarea</div></div>';
   h+='<div class="sc crit"><div class="sn">'+cr.length+'</div><div class="sl">Urgencia critica</div></div>';
   h+='<div class="sc aud"><div class="sn">'+auds.length+'</div><div class="sl">Audiencias 45d</div></div></div>';
+  var agHoy=DB.agendas.filter(function(a){return a.f===hoy()&&!a.he&&a.resp===CU.nombre&&(!a.conf||CU.rol==='admin');}).sort(function(a,b){return(a.ho||'00:00').localeCompare(b.ho||'00:00');});
+  if(agHoy.length){h+='<div class="cd" style="margin-bottom:1.25rem;border-left:4px solid #059669"><div class="ch"><span class="ctl" style="color:#059669">📋 Mis tareas de hoy</span><span style="font-size:12px;color:var(--muted);font-weight:500">'+agHoy.length+' pendiente'+(agHoy.length!==1?'s':'')+'</span></div><div style="padding:.5rem 1.25rem">';agHoy.forEach(function(ag){var p2=DB.procesos.find(function(x){return x.id===ag.pid;});var co=(ag.co||'').replace(/<[^>]*>/g,'').trim();h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0">'+(ag.ho&&ag.ho!=='00:00'&&ag.ho!=='0:00'?'<div style="flex-shrink:0;background:#DCFCE7;color:#166534;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;min-width:44px;text-align:center">'+ag.ho+'</div>':'<div style="flex-shrink:0;font-size:18px;width:36px;text-align:center">📋</div>')+'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);cursor:pointer" onclick="aPenAg(\''+ag.pid+'\')">'+esc(co.substr(0,80))+'</div>'+(p2?'<div style="font-size:11px;color:var(--muted);font-style:italic">'+esc(p2.ca)+'</div>':'')+'</div><button class="btn bsm" style="background:#DCFCE7;color:#166534;border:1px solid #86EFAC;flex-shrink:0;font-size:11px" onclick="toggleAgReal(\''+ag.id+'\',\''+ag.pid+'\',\'ag\');rDash()">✓ Hecho</button></div>';});h+='</div></div>';}
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem"><div>';
   if(pinned.length){
     var pinnedOrdenados=pinned.slice().sort(function(a,b){var oa=DB.pinOrder.indexOf(a.id),ob=DB.pinOrder.indexOf(b.id);if(oa<0)oa=999;if(ob<0)ob=999;return oa-ob;});
@@ -898,11 +902,6 @@ function rDash(){
   else h+=auds.slice(0,15).map(function(vx){var p2=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';return'<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0"><div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0"><div style="background:'+c2+';color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;min-width:54px;text-align:center">'+fFc(vx.f)+'</div><div style="background:'+c2+';color:#fff;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap">'+(df<0?'VENCIDO':df===0?'HOY':df===1?'mañana':df+'d')+'</div></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;cursor:pointer" onclick="aP(\''+(p2?p2.id:'')+'\')">'+( p2?p2.ca:'-')+'</div><div style="font-size:12px;color:#374151;margin-top:3px;line-height:1.5">'+(vx.ac||'').substr(0,140)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho+'h':'')+'</div></div>'+(vx.conf2?'<span class="vc-conf">CONF</span>':'')+'</div>';}).join('');
   h+='</div></div>';
   if(CU.rol==='admin'&&lorProx.length){h+='<div class="cd" style="margin-bottom:1rem;border-left:4px solid var(--lor)"><div class="ch"><span class="ctl" style="color:var(--lor)">💙 Lorenzo</span><button class="btn blor bsm" onclick="nav(\'lorenzo\')">Ver agenda</button></div><div style="padding:.75rem 1.25rem">';lorProx.forEach(function(a){h+='<div class="lor-act-card"><div style="min-width:52px;text-align:center;flex-shrink:0"><div style="font-size:18px;font-weight:700;color:var(--lor)">'+fF(a.f).substr(0,2)+'</div><div style="font-size:10px;color:var(--muted)">'+mesAbr(a.f)+'</div></div><div style="flex:1;min-width:0"><span class="lor-cat-badge">'+(a.cat||'Otro')+'</span><div style="font-size:13px;margin-top:4px;font-weight:600">'+esc(a.tit||'-')+'</div>'+(a.hora?'<div style="font-size:11px;color:var(--muted)">'+a.hora+'h</div>':'')+'</div></div>';});h+='</div></div>';}
-  var _hoyStr=hoy();var _tarHoy=DB.agendas.filter(function(a){if(a.he)return false;if(a.conf&&CU.rol!=='admin')return false;if(a.f!==_hoyStr)return false;if(CU.rol!=='admin'&&a.resp!==CU.nombre)return false;return true;}).sort(function(a,b){return(a.ho||'').localeCompare(b.ho||'');});
-  h+='<div class="cd" style="border-left:4px solid #059669"><div class="ch"><span class="ctl" style="color:#059669">📋 '+(CU.rol==='admin'?'Tareas del día':'Mis tareas de hoy')+'</span><button class="btn bs bsm" onclick="nav(\'agenda\')">Ver agenda</button></div>';
-  if(!_tarHoy.length){h+='<div style="padding:1rem 1.25rem;color:var(--muted);font-size:13px;font-style:italic">Sin tareas pendientes para hoy ✓</div>';}
-  else{h+='<div style="padding:.5rem 1.25rem">';_tarHoy.forEach(function(ag){var p2=DB.procesos.find(function(x){return x.id===ag.pid;});h+='<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f0f0f0;cursor:pointer" onclick="aPenAg(\''+ag.pid+'\')" title="Clic para abrir en Agenda del proceso"><div style="flex-shrink:0;min-width:46px;text-align:center;margin-top:1px">'+(ag.ho&&ag.ho!=='00:00'&&ag.ho!=='0:00'?'<div style="background:#DCFCE7;color:#166534;border-radius:5px;padding:3px 6px;font-size:11px;font-weight:700">'+ag.ho+'</div>':'<div style="font-size:18px">📋</div>')+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;line-height:1.4;color:var(--text)">'+esc(ag.co||'Sin descripción')+'</div>'+(p2?'<div style="font-size:11px;color:var(--muted);margin-top:2px;font-style:italic">'+esc(p2.ca)+'</div>':'<div style="font-size:11px;color:var(--red);margin-top:2px">⚠ Proceso no encontrado</div>')+(CU.rol==='admin'&&ag.resp?'<div style="font-size:11px;color:var(--navy);margin-top:1px">'+esc(ag.resp)+'</div>':'')+(ag.conf?'<span style="display:inline-block;margin-top:2px;font-size:10px;background:#F3E8FF;color:#6D28D9;border-radius:3px;padding:1px 5px">🔒 Conf.</span>':'')+'</div><span style="flex-shrink:0;color:var(--muted);font-size:18px;align-self:center;padding-left:4px">›</span></div>';});h+='</div>';}
-  h+='</div>';
   h+='</div></div>';
   document.getElementById('MC').innerHTML=h;
   initPinDragReal();
@@ -1567,6 +1566,80 @@ function imprimirFinanzas(){
   abrirImpresion('Finanzas BMB',c);
 }
 // ===================== FIN MODULO FINANZAS =====================
+
+// ===================== MODULO REAGENDAMIENTO AUTOMATICO =====================
+function proxFechaHabilDisponible(resp, desdeStr, asignados){
+  var d=new Date((desdeStr||hoy())+'T12:00:00');
+  var max=120;
+  for(var i=0;i<max;i++){
+    var dow=d.getDay();
+    if(dow===0||dow===6){d.setDate(d.getDate()+1);continue;}
+    var fs=d.toISOString().substr(0,10);
+    var enDB=DB.agendas.filter(function(x){return !x.he&&x.resp===resp&&x.f===fs;}).length;
+    var enAsig=(asignados&&asignados[resp+'_'+fs])||0;
+    if(enDB+enAsig<7)return fs;
+    d.setDate(d.getDate()+1);
+  }
+  return null;
+}
+function rReagendar(){
+  if(CU.rol!=='admin'){document.getElementById('MC').innerHTML='<div class="cd"><div style="padding:2rem;color:var(--red)">⛔ Solo administradores.</div></div>';return;}
+  var hoyS=hoy();
+  var vencidas=DB.agendas.filter(function(a){return !a.he&&a.f<hoyS&&!a.conf;});
+  var porResp={};vencidas.forEach(function(a){if(!porResp[a.resp])porResp[a.resp]=[];porResp[a.resp].push(a);});
+  var total=vencidas.length;
+  var h='<div style="max-width:800px;margin:0 auto">';
+  h+='<div class="cd" style="margin-bottom:1.25rem"><div class="ch"><span class="ctl">🔄 Reagendamiento Automático</span></div><div style="padding:1rem 1.25rem;font-size:13px;color:var(--text);line-height:1.7">Este modulo redistribuye automaticamente las tareas vencidas hacia proximas fechas habiles, respetando el limite de <strong>7 tareas por dia</strong> por letrado. La operacion es <strong>reversible</strong> con el boton "Deshacer".</div></div>';
+  if(DB.reagendSnap&&DB.reagendSnap.length){h+='<div class="cd" style="margin-bottom:1.25rem;border-left:4px solid #F59E0B"><div class="ch"><span class="ctl" style="color:#B45309">↩ Reagendamiento activo</span></div><div style="padding:1rem 1.25rem"><p style="font-size:13px;color:var(--text);margin:0 0 12px">Se reagendaron <strong>'+DB.reagendSnap.length+'</strong> tareas. Puede deshacer para volver a las fechas originales.</p><button class="btn" style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-size:13px" onclick="deshacerReagendamiento()">↩ Deshacer reagendamiento</button></div></div>';}
+  if(!total){h+='<div class="cd"><div style="padding:2.5rem;text-align:center"><div style="font-size:40px">✓</div><div style="color:var(--green);font-weight:600;font-size:16px;margin-top:10px">Sin tareas vencidas pendientes</div></div></div>';}
+  else{
+    h+='<div class="cd" style="margin-bottom:1.25rem"><div class="ch"><span class="ctl" style="color:var(--red)">⚠️ Tareas vencidas: '+total+'</span></div><div style="padding:.5rem 1.25rem">';
+    var resps=Object.keys(porResp).sort();
+    resps.forEach(function(resp){var lista=porResp[resp].sort(function(a,b){return a.f.localeCompare(b.f);});h+='<div style="padding:10px 0;border-bottom:1px solid #f0f0f0"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;font-weight:600;font-size:13px;color:var(--text)">'+esc(resp||'Sin responsable')+'</div><div style="background:#FEE2E2;color:#991B1B;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700">'+lista.length+' vencida'+(lista.length!==1?'s':'')+'</div></div><div style="margin-top:6px;padding-left:8px">';lista.slice(0,5).forEach(function(a){var p2=DB.procesos.find(function(x){return x.id===a.pid;});var co=(a.co||'').replace(/<[^>]*>/g,'').trim();h+='<div style="font-size:12px;color:var(--muted);padding:2px 0">📅 '+fF(a.f)+' · '+esc(co.substr(0,60))+(p2?' <em>('+esc(p2.ca.substr(0,30))+')</em>':'')+'</div>';});if(lista.length>5)h+='<div style="font-size:12px;color:var(--muted);font-style:italic;padding:2px 0">...y '+(lista.length-5)+' mas</div>';h+='</div></div>';});
+    h+='</div></div>';
+    h+='<div style="display:flex;justify-content:center"><button class="btn bp" style="font-size:14px;padding:12px 32px" onclick="ejecutarReagendamiento()">🔄 Reagendar '+total+' tareas automaticamente</button></div>';
+  }
+  h+='</div>';
+  document.getElementById('MC').innerHTML=h;
+}
+function ejecutarReagendamiento(){
+  if(CU.rol!=='admin')return;
+  var hoyS=hoy();
+  var vencidas=DB.agendas.filter(function(a){return !a.he&&a.f<hoyS&&!a.conf;});
+  if(!vencidas.length){alert('No hay tareas vencidas para reagendar.');return;}
+  if(!confirm('¿Reagendar '+vencidas.length+' tareas vencidas automaticamente?\n\nLas fechas originales se guardan para poder deshacer.'))return;
+  DB.reagendSnap=vencidas.map(function(a){return{id:a.id,f:a.f};});
+  vencidas.sort(function(a,b){if((a.resp||'')<(b.resp||''))return -1;if((a.resp||'')>(b.resp||''))return 1;return a.f.localeCompare(b.f);});
+  var asignados={};
+  vencidas.forEach(function(a){
+    var resp=a.resp||'';
+    var d=new Date(hoyS+'T12:00:00');
+    var max=120;var fs=null;
+    for(var i=0;i<max;i++){
+      var dow=d.getDay();
+      if(dow===0||dow===6){d.setDate(d.getDate()+1);continue;}
+      var fStr=d.toISOString().substr(0,10);
+      var enDB=DB.agendas.filter(function(x){return !x.he&&x.resp===resp&&x.f===fStr&&x.id!==a.id;}).length;
+      var enAsig=asignados[resp+'_'+fStr]||0;
+      if(enDB+enAsig<7){fs=fStr;break;}
+      d.setDate(d.getDate()+1);
+    }
+    if(fs){a.f=fs;asignados[resp+'_'+fs]=(asignados[resp+'_'+fs]||0)+1;}
+  });
+  sv();
+  alert('✅ '+vencidas.length+' tareas reagendadas correctamente.\n\nUse "Deshacer reagendamiento" para revertir.');
+  rReagendar();
+}
+function deshacerReagendamiento(){
+  if(!DB.reagendSnap||!DB.reagendSnap.length){alert('No hay reagendamiento activo para deshacer.');return;}
+  if(!confirm('¿Deshacer el reagendamiento? Las '+DB.reagendSnap.length+' tareas volveron a sus fechas originales.'))return;
+  DB.reagendSnap.forEach(function(s){var a=DB.agendas.find(function(x){return x.id===s.id;});if(a)a.f=s.f;});
+  DB.reagendSnap=[];
+  sv();
+  alert('↩ Reagendamiento deshecho. Las tareas volvieron a sus fechas originales.');
+  rReagendar();
+}
+// ===================== FIN MODULO REAGENDAMIENTO =====================
 </script>
 </body>
 </html>
