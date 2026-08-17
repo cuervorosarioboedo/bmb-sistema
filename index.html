@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%230F1B2D'/><text y='72' x='50' text-anchor='middle' font-size='58' font-family='system-ui,sans-serif' font-weight='700' fill='%23C9A84C'>B</text></svg>">
-<title>BMB 2.0 v2.12 — Sistema Juridico BMB y Asociados</title>
+<title>BMB 2.0 v2.13 — Sistema Juridico BMB y Asociados</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif}
 :root{--navy:#1A4B8C;--navy2:#1a5fa8;--gold:#C9A84C;--red:#C0392B;--amber:#D97706;--green:#2D7A4F;--cream:#F8F5EF;--muted:#6b7a8d;--border:#d0d8e4;--text:#1a2535;--textl:#4a5568;--foco-bg:#FFF7ED;--foco-bd:#F97316;--foco-tx:#C2410C;--lor:#7C3AED}
@@ -187,7 +187,7 @@ textarea.fc{min-height:80px;resize:vertical}
 <div class="lp" id="LP">
   <div class="lc">
     <div class="lm" onclick="intentarNavHome()">BMB<span>.</span></div>
-    <div class="ls">Sistema Juridico v2.12 · BMB y Asociados · Rosario</div>
+    <div class="ls">Sistema Juridico v2.13 · BMB y Asociados · Rosario</div>
     <input type="text" id="lu" placeholder="Usuario" autocomplete="username"/>
     <input type="password" id="lp2" placeholder="Contrasena" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"/>
     <button class="btn-login" onclick="login()">Ingresar al sistema</button>
@@ -204,6 +204,7 @@ textarea.fc{min-height:80px;resize:vertical}
       <div class="ns">Gestion</div>
       <div class="ni" onclick="nav('proc')">📁 Procesos</div>
       <div class="ni" onclick="nav('agenda')">📅 Agenda global</div>
+      <div class="ni" id="navTurnero" onclick="nav('turnero')">🗓️ Turnero de citas</div>
       <div class="ni" onclick="nav('procuracion')">🏛️ Procuracion global</div>
       <div class="ni" onclick="nav('venc')">⏰ Audiencias y vencimientos</div>
       <div class="ni" onclick="nav('interv')">👥 Intervinientes</div>
@@ -259,6 +260,7 @@ textarea.fc{min-height:80px;resize:vertical}
 <div class="mb" id="mEditVc"><div class="md mdm" id="mEditVcI"></div></div>
 <div class="mb" id="mEditTxt"><div class="md mdm" id="mEditTxtI"></div></div>
 <div class="mb" id="mAlertaCrit"><div class="md mdm" id="mAlertaCritI"></div></div>
+<div class="mb" id="mTurno"><div class="md mdm" id="mTurnoI"></div></div>
 <script>
 
 // ============================================================
@@ -370,7 +372,7 @@ async function supaCargarTodo() {
     var tablas = [
       'procesos','agendas','procuraciones','vencimientos',
       'intervinientes','cc:cuenta_corriente','lorenzo','lor_agenda',
-      'finanzas','usuarios'
+      'finanzas','usuarios','turnos'
     ];
     var resultados = await Promise.all(tablas.map(function(t) {
       var partes = t.split(':');
@@ -713,7 +715,7 @@ var USUARIOS_BASE=[{id:'banuls',pass:'bmb2024',nombre:'Dr. Emanuel Banuls',rol:'
 var INSTANCIAS=['SRT (Superintendencia de Riesgos del Trabajo)','Ministerio de Trabajo','Extrajudicial - Accidente de transito','Extrajudicial - Laboral','Extrajudicial - Inmobiliario','Primera Instancia Judicial','Segunda Instancia - Camara','Tercera Instancia - CSJSF','Oficina de Procesos Sucesorios'];
 var JUZGADOS_BASE=['Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 3 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 4 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 5 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 6 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 7 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 8 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 9 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 10 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 11 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 12 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 13 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 14 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 15 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 16 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 17 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 18 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 19 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 20 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 21 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 22 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 1 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 2 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 3 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 4 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 5 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 6 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 7 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 8 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 9 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 10 - Rosario','Juzgado Unipersonal de Familia N° 1 - Rosario','Juzgado Unipersonal de Familia N° 2 - Rosario','Juzgado Unipersonal de Familia N° 3 - Rosario','Juzgado Unipersonal de Familia N° 4 - Rosario','Juzgado Unipersonal de Familia N° 5 - Rosario','Juzgado Unipersonal de Familia N° 6 - Rosario','Juzgado Unipersonal de Familia N° 7 - Rosario','Juzgado Unipersonal de Familia N° 8 - Rosario','Juzgado Unipersonal de Familia N° 9 - Rosario','Juzgado Unipersonal de Familia N° 10 - Rosario','Juzgado Unipersonal de Familia N° 11 - Rosario','Juzgado Unipersonal de Familia N° 12 - Rosario','Juzgado de Primera Instancia de Distrito en Ejecucion Civil N° 1 - Rosario','Juzgado de Primera Instancia de Distrito en Ejecucion Civil N° 2 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 1 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 2 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 3 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 4 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 5 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 6 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 7 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 8 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 9 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 10 - Rosario','Camara de Apelaciones en lo Laboral Sala I - Rosario','Camara de Apelaciones en lo Laboral Sala II - Rosario','Camara de Apelaciones en lo Laboral Sala III - Rosario','Camara de Apelacion en lo Contencioso Administrativo - Rosario','Camara de Apelacion en lo Penal Sala I - Rosario','Camara de Apelacion en lo Penal Sala II - Rosario','Camara de Apelacion en lo Penal Sala III - Rosario','Camara de Apelacion en lo Penal Sala IV - Rosario','Camara de Apelacion de Ejecucion Penal y Supervision Carcelaria - Rosario','Juzgado de Primera Instancia de Circuito de Arroyo Seco','Juzgado de Primera Instancia de Circuito de Villa Gobernador Galvez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 1 - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 2 - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 3 - Canada de Gomez','Juzgado de Primera Instancia de Familia - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 1 - Casilda','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 2 - Casilda','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 3 - Casilda','Juzgado de Primera Instancia de Familia - Casilda','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - San Lorenzo','Juzgado de Primera Instancia de Familia - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Laboral - San Lorenzo','Juzgado de Primera Instancia de Circuito - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - Villa Constitucion','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - Villa Constitucion','Juzgado de Primera Instancia de Familia - Villa Constitucion','Oficina de Procesos Sucesorios - Rosario','SRT - Rosario','Ministerio de Trabajo - Rosario','Tribunal en lo Laboral N° 2 - San Nicolas','Tribunal en lo Laboral N° 3 - San Nicolas','Asesoria de Menores N° 1 - Rosario','Extrajudicial'];
 var LOR_CATS=['Turno medico','Fonoaudiologia','Psicopedagogia','Psicologia','Gimnasia','Escuela','Cumpleanos','Evento especial','Otro'];
-var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],reagendSnap:[],juzgados:JUZGADOS_BASE.slice(),tp:['Accidente de Trabajo LRT','Enfermedad Laboral LRT','Laboral - Cobro de Pesos','Laboral - Despido','Sucesion','Danos y Perjuicios','Derecho Inmobiliario - Locacion','Derecho Inmobiliario - Usucapion','Cobro de Pesos','Defensa del Consumidor','SRT','Ministerio de Trabajo','Extrajudicial','Ejecutivo','Divorcio','Alimentos','Otro'],usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
+var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],reagendSnap:[],turnos:[],juzgados:JUZGADOS_BASE.slice(),tp:['Accidente de Trabajo LRT','Enfermedad Laboral LRT','Laboral - Cobro de Pesos','Laboral - Despido','Sucesion','Danos y Perjuicios','Derecho Inmobiliario - Locacion','Derecho Inmobiliario - Usucapion','Cobro de Pesos','Defensa del Consumidor','SRT','Ministerio de Trabajo','Extrajudicial','Ejecutivo','Divorcio','Alimentos','Otro'],usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
 var CU=null,CS='dash',_histNav=[],_listadoFiltrado=[],_qFiltro='',_alertaCriticaMostrada=false;
 var fR2='',fT2='',fB2='',fP2='',fI2='';
 function sv(){
@@ -841,12 +843,12 @@ function navAtras(){if(_histNav.length>1){_histNav.pop();var prev=_histNav[_hist
 function nav(s){
   CS=s;_histNav.push(s);if(_histNav.length>20)_histNav=_histNav.slice(-20);
   document.querySelectorAll('.ni').forEach(function(e){e.classList.remove('active');});
-  var ts={dash:'Panel Principal',proc:'Procesos Activos',agenda:'Agenda Global',procuracion:'Procuracion Global',venc:'Audiencias y Vencimientos',interv:'Intervinientes',arch:'Causas Archivadas',alertas:'Panel de Alertas',reportes:'Reportes e Impresion',lorenzo:'Modulo Lorenzo',finanzas:'Finanzas BMB',reagendar:'Reagendamiento Automatico',ia:'Asistente IA',tab:'Tablas',usr:'Usuarios',backup:'Exportar / Importar'};
+  var ts={dash:'Panel Principal',proc:'Procesos Activos',agenda:'Agenda Global',procuracion:'Procuracion Global',venc:'Audiencias y Vencimientos',interv:'Intervinientes',arch:'Causas Archivadas',alertas:'Panel de Alertas',reportes:'Reportes e Impresion',lorenzo:'Modulo Lorenzo',finanzas:'Finanzas BMB',reagendar:'Reagendamiento Automatico',turnero:'Turnero de Citas',ia:'Asistente IA',tab:'Tablas',usr:'Usuarios',backup:'Exportar / Importar'};
   document.getElementById('TT').textContent=ts[s]||s;
   var nis=document.querySelectorAll('.ni');
   var im={dash:0,proc:1,agenda:2,procuracion:3,venc:4,interv:5,arch:6,alertas:7,reportes:8,ia:9,tab:10,usr:11,backup:12};
   if(im[s]!==undefined&&nis[im[s]])nis[im[s]].classList.add('active');
-  var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzo,finanzas:rFinanzas,reagendar:rReagendar,ia:rIA,tab:rTab,usr:rUsr,backup:rBackup};
+  var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzo,finanzas:rFinanzas,reagendar:rReagendar,turnero:rTurnero,ia:rIA,tab:rTab,usr:rUsr,backup:rBackup};
   if(fns[s])fns[s]();
   var b=document.getElementById('btnAtras');if(b)b.style.opacity=_histNav.length>1?'1':'0.4';
 }
@@ -903,6 +905,7 @@ function rDash(){
   if(!auds.length)h+='<div style="color:var(--muted);font-size:13px">Sin audiencias en los proximos 45 dias</div>';
   else h+=auds.slice(0,15).map(function(vx){var p2=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';return'<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0"><div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0"><div style="background:'+c2+';color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;min-width:54px;text-align:center'+(vx.conf2?';box-shadow:0 0 0 2px #16a34a':'')+'">'+fFc(vx.f)+'</div><div style="background:'+c2+';color:#fff;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap">'+(df<0?'VENCIDO':df===0?'HOY':df===1?'mañana':df+'d')+'</div>'+(vx.conf2?'<div style="font-size:10px;color:#16a34a;font-weight:700;background:#DCFCE7;border-radius:4px;padding:1px 5px">✓ CONF</div>':'')+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;cursor:pointer" onclick="aP(\''+(p2?p2.id:'')+'\')">'+( p2?p2.ca:'-')+'</div><div style="font-size:12px;color:#374151;margin-top:3px;line-height:1.5">'+(vx.ac||'').substr(0,140)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho+'h':'')+'</div></div></div>';}).join('');
   h+='</div></div>';
+  h+='<div class="cd" style="margin-bottom:1rem"><div class="ch"><span class="ctl">🗓️ Turnero — semana actual</span><button class="btn bs bsm" onclick="nav(\'turnero\')">Ver completo</button></div><div id="turnero-widget" style="padding:.5rem 1rem">'+renderTurneroSemana(true)+'</div></div>';
   if(CU.rol==='admin'&&lorProx.length){h+='<div class="cd" style="margin-bottom:1rem;border-left:4px solid var(--lor)"><div class="ch"><span class="ctl" style="color:var(--lor)">💙 Lorenzo</span><button class="btn blor bsm" onclick="nav(\'lorenzo\')">Ver agenda</button></div><div style="padding:.75rem 1.25rem">';lorProx.forEach(function(a){h+='<div class="lor-act-card"><div style="min-width:52px;text-align:center;flex-shrink:0"><div style="font-size:18px;font-weight:700;color:var(--lor)">'+fF(a.f).substr(0,2)+'</div><div style="font-size:10px;color:var(--muted)">'+mesAbr(a.f)+'</div></div><div style="flex:1;min-width:0"><span class="lor-cat-badge">'+(a.cat||'Otro')+'</span><div style="font-size:13px;margin-top:4px;font-weight:600">'+esc(a.tit||'-')+'</div>'+(a.hora?'<div style="font-size:11px;color:var(--muted)">'+a.hora+'h</div>':'')+'</div></div>';});h+='</div></div>';}
   h+='</div></div>';
   document.getElementById('MC').innerHTML=h;
@@ -1675,6 +1678,264 @@ function deshacerReagendamiento(){
   rReagendar();
 }
 // ===================== FIN MODULO REAGENDAMIENTO =====================
+
+// ===================== MODULO TURNERO v2.13 =====================
+
+// PASO 5 — Helpers de fecha/semana
+function lunesDeSemana(fechaStr) {
+  var p = fechaStr.split('-');
+  var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+  var dia = d.getDay();
+  var diff = dia === 0 ? -6 : 1 - dia;
+  d.setDate(d.getDate() + diff);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function sumarDiasStr(fechaStr, n) {
+  var p = fechaStr.split('-');
+  var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+  d.setDate(d.getDate() + n);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function _sumarMinHora(horaStr, min) {
+  var p = horaStr.split(':');
+  var h = parseInt(p[0]);
+  var m = parseInt(p[1]) + min;
+  if(m >= 60) { h += Math.floor(m/60); m = m % 60; }
+  if(h > 20) h = 20;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+
+function semanaAnterior() {
+  DB._turneroSemana = sumarDiasStr(DB._turneroSemana || lunesDeSemana(hoy()), -7);
+  if(CS === 'turnero') rTurnero();
+  else actualizarWidgetTurnero();
+}
+
+function semanaSiguiente() {
+  DB._turneroSemana = sumarDiasStr(DB._turneroSemana || lunesDeSemana(hoy()), 7);
+  if(CS === 'turnero') rTurnero();
+  else actualizarWidgetTurnero();
+}
+
+function actualizarWidgetTurnero() {
+  var el = document.getElementById('turnero-widget');
+  if(el) el.innerHTML = renderTurneroSemana(true);
+}
+
+// PASO 4 — Render semanal
+function renderTurneroSemana(compact) {
+  if(!DB._turneroSemana) DB._turneroSemana = lunesDeSemana(hoy());
+  var lunes = DB._turneroSemana;
+  var hoyStr = hoy();
+  var dias = ['Lun','Mar','Mié','Jue','Vie'];
+  var fechasDia = [0,1,2,3,4].map(function(i){ return sumarDiasStr(lunes, i); });
+
+  var horas = [];
+  for(var hh=8; hh<20; hh++){
+    horas.push(String(hh).padStart(2,'0')+':00');
+    horas.push(String(hh).padStart(2,'0')+':30');
+  }
+
+  var semLabel = 'Semana ' + fechasDia[0].substr(8,2)+'/'+fechasDia[0].substr(5,2) + ' — ' + fechasDia[4].substr(8,2)+'/'+fechasDia[4].substr(5,2)+'/'+fechasDia[4].substr(0,4);
+  var fnHoy = compact ? 'actualizarWidgetTurnero()' : 'rTurnero()';
+
+  var navH = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">';
+  navH += '<button class="btn bs bsm" onclick="semanaAnterior()">← Ant</button>';
+  navH += '<span style="font-size:12px;font-weight:600;flex:1;text-align:center">'+semLabel+'</span>';
+  if(lunes !== lunesDeSemana(hoyStr)){
+    navH += '<button class="btn bp bsm" onclick="DB._turneroSemana=lunesDeSemana(hoy());'+fnHoy+'">Hoy</button>';
+  }
+  navH += '<button class="btn bs bsm" onclick="semanaSiguiente()">Sig →</button>';
+  navH += '</div>';
+
+  var tbl = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+  tbl += '<tr><th style="width:44px;padding:3px;background:#f8fafc;border:1px solid #e2e8f0;font-size:10px;color:#94a3b8">Hora</th>';
+  fechasDia.forEach(function(f, i){
+    var esHoy = f === hoyStr;
+    tbl += '<th style="padding:3px 5px;border:1px solid #e2e8f0;background:'+(esHoy?'#dbeafe':'#f8fafc')+';color:'+(esHoy?'#1d4ed8':'#374151')+';font-size:11px;font-weight:700;text-align:center">'+dias[i]+'<br><span style="font-size:9px;font-weight:400">'+f.substr(8,2)+'/'+f.substr(5,2)+'</span></th>';
+  });
+  tbl += '</tr>';
+
+  if(compact){
+    var horasConT = {};
+    (DB.turnos||[]).forEach(function(tu){
+      if(fechasDia.indexOf(tu.fecha) > -1) horasConT[tu.hora_inicio] = true;
+    });
+    var horasFilt = horas.filter(function(h){ return horasConT[h]; });
+    if(!horasFilt.length){
+      tbl += '<tr><td colspan="6" style="padding:10px;text-align:center;color:#94a3b8;border:1px solid #e2e8f0;font-size:12px">Sin turnos esta semana</td></tr>';
+    } else {
+      horasFilt.forEach(function(hora){ tbl += _filaT(hora, fechasDia, true); });
+    }
+  } else {
+    horas.forEach(function(hora){ tbl += _filaT(hora, fechasDia, false); });
+  }
+
+  tbl += '</table></div>';
+  if(!compact) tbl += '<div style="margin-top:6px;font-size:11px;color:#94a3b8">Clic en celda vacía para agendar · Clic en turno para ver detalle</div>';
+  return navH + tbl;
+}
+
+function _filaT(hora, fechasDia, compact) {
+  var h = '<tr>';
+  h += '<td style="padding:3px;border:1px solid #e2e8f0;color:#94a3b8;font-size:10px;white-space:nowrap;background:#fafafa;text-align:center">'+hora+'</td>';
+  fechasDia.forEach(function(fecha){
+    var turno = (DB.turnos||[]).find(function(tu){ return tu.fecha===fecha && tu.hora_inicio===hora; });
+    if(turno){
+      var col = turno.color || '#3b82f6';
+      var respN = turno.resp ? turno.resp.split(' ').pop() : '';
+      h += '<td style="padding:2px;border:1px solid #e2e8f0;cursor:pointer" onclick="verDetalleTurno(\''+turno.id+'\')">';
+      h += '<div style="background:'+col+';color:#fff;border-radius:3px;padding:2px 4px;font-size:10px;font-weight:600;line-height:1.3">';
+      h += '<div>'+esc((turno.cliente||'').substr(0,16))+'</div>';
+      if(respN) h += '<div style="opacity:.8;font-size:9px">'+esc(respN)+'</div>';
+      h += '</div></td>';
+    } else {
+      if(!compact){
+        h += '<td style="border:1px solid #e2e8f0;cursor:pointer;background:#fff;min-width:90px" onclick="clickBloqueTurnero(\''+fecha+'\',\''+hora+'\')" onmouseover="this.style.background=\'#f0f9ff\'" onmouseout="this.style.background=\'#fff\'"> </td>';
+      } else {
+        h += '<td style="border:1px solid #e2e8f0;background:#fff"> </td>';
+      }
+    }
+  });
+  h += '</tr>';
+  return h;
+}
+
+// PASO 6 — Render página completa
+function rTurnero() {
+  var h = '<div id="turnero-widget" style="padding:1rem">';
+  h += '<div style="margin-bottom:1rem"><button class="btn bs bsm" onclick="navAtras()">← Volver</button></div>';
+  h += renderTurneroSemana(false);
+  h += '</div>';
+  document.getElementById('MC').innerHTML = h;
+}
+
+// PASO 7 — CRUD turnos
+function clickBloqueTurnero(fecha, hora) {
+  editarTurno(null, fecha, hora);
+}
+
+function verDetalleTurno(id) {
+  var tu = (DB.turnos||[]).find(function(t){ return t.id===id; });
+  if(!tu) return;
+  var col = tu.color || '#3b82f6';
+  var h = '<div style="padding:1.5rem">';
+  h += '<div style="background:'+col+';color:#fff;border-radius:8px;padding:12px 16px;margin-bottom:1rem">';
+  h += '<div style="font-size:16px;font-weight:700">'+esc(tu.cliente)+'</div>';
+  h += '<div style="font-size:13px;margin-top:4px">'+tu.fecha.substr(8,2)+'/'+tu.fecha.substr(5,2)+'/'+tu.fecha.substr(0,4)+' · '+tu.hora_inicio+' — '+tu.hora_fin+'</div>';
+  h += '</div>';
+  if(tu.asunto) h += '<div style="margin-bottom:.75rem"><span style="font-size:12px;color:#64748b">Asunto: </span>'+esc(tu.asunto)+'</div>';
+  if(tu.resp) h += '<div style="margin-bottom:.75rem"><span style="font-size:12px;color:#64748b">Responsable: </span>'+esc(tu.resp)+'</div>';
+  h += '<div style="display:flex;gap:8px;margin-top:1.5rem">';
+  h += '<button class="btn bp" onclick="editarTurno(\''+id+'\',null,null)">✏️ Editar</button>';
+  h += '<button class="btn" style="background:#dc2626;color:#fff" onclick="eliminarTurno(\''+id+'\')">🗑 Eliminar</button>';
+  h += '<button class="btn bs" onclick="cM(\'mTurno\')">Cerrar</button>';
+  h += '</div></div>';
+  document.getElementById('mTurnoI').innerHTML = h;
+  abrirModal('mTurno');
+}
+
+function editarTurno(id, fecha, hora) {
+  var tu = id ? (DB.turnos||[]).find(function(t){ return t.id===id; }) : null;
+  var fVal = tu ? tu.fecha : (fecha || hoy());
+  var hiVal = tu ? tu.hora_inicio : (hora || '09:00');
+  var hfVal = tu ? tu.hora_fin : _sumarMinHora(hiVal, 30);
+
+  var horas = [];
+  for(var hh=8; hh<20; hh++){
+    horas.push(String(hh).padStart(2,'0')+':00');
+    horas.push(String(hh).padStart(2,'0')+':30');
+  }
+  horas.push('20:00');
+
+  var optsHI = horas.map(function(h){ return '<option value="'+h+'"'+(h===hiVal?' selected':'')+'>'+h+'</option>'; }).join('');
+  var optsHF = horas.map(function(h){ return '<option value="'+h+'"'+(h===hfVal?' selected':'')+'>'+h+'</option>'; }).join('');
+  var optsResp = [''].concat(RESPONSABLES).map(function(r){
+    var sel = (tu && tu.resp===r) || (!tu && r==='') || (tu && !tu.resp && r==='') ? ' selected' : '';
+    return '<option value="'+r+'"'+sel+'>'+r+'</option>';
+  }).join('');
+
+  var colores = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#0ea5e9','#64748b'];
+  var colVal = tu ? (tu.color||'#3b82f6') : '#3b82f6';
+  var optsCols = colores.map(function(c){ return '<option value="'+c+'"'+(c===colVal?' selected':'')+' style="background:'+c+';color:#fff">'+c+'</option>'; }).join('');
+
+  var h = '<div style="padding:1.5rem">';
+  h += '<div style="font-size:16px;font-weight:700;margin-bottom:1.25rem">'+(id?'✏️ Editar turno':'📅 Nuevo turno')+'</div>';
+  h += '<input type="hidden" id="tId" value="'+(id||'')+'">';
+  h += '<div style="margin-bottom:.75rem"><label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">Cliente / Nombre *</label><input class="inp" id="tCliente" value="'+esc(tu?tu.cliente:'')+'" placeholder="Nombre del cliente"></div>';
+  h += '<div style="display:flex;gap:8px;margin-bottom:.75rem;flex-wrap:wrap">';
+  h += '<div style="flex:1;min-width:120px"><label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">Fecha *</label><input class="inp" type="date" id="tFecha" value="'+fVal+'"></div>';
+  h += '<div><label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">Desde</label><select class="inp" id="tHI">'+optsHI+'</select></div>';
+  h += '<div><label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">Hasta</label><select class="inp" id="tHF">'+optsHF+'</select></div>';
+  h += '</div>';
+  h += '<div style="margin-bottom:.75rem"><label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">Asunto / Motivo</label><input class="inp" id="tAsunto" value="'+esc(tu?tu.asunto:'')+'"></div>';
+  h += '<div style="margin-bottom:.75rem"><label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">Responsable</label><select class="inp" id="tResp">'+optsResp+'</select></div>';
+  h += '<div style="margin-bottom:1rem"><label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">Color</label><select class="inp" id="tColor">'+optsCols+'</select></div>';
+  h += '<div style="display:flex;gap:8px">';
+  h += '<button class="btn bp" onclick="gTurno()">💾 Guardar</button>';
+  h += '<button class="btn bs" onclick="cM(\'mTurno\')">Cancelar</button>';
+  h += '</div></div>';
+
+  document.getElementById('mTurnoI').innerHTML = h;
+  abrirModal('mTurno');
+}
+
+function gTurno() {
+  var id = document.getElementById('tId').value;
+  var cliente = (document.getElementById('tCliente').value||'').trim();
+  var fecha = document.getElementById('tFecha').value;
+  var hi = document.getElementById('tHI').value;
+  var hf = document.getElementById('tHF').value;
+  var asunto = (document.getElementById('tAsunto').value||'').trim();
+  var resp = document.getElementById('tResp').value;
+  var color = document.getElementById('tColor').value;
+
+  if(!cliente){ alert('Ingresá el nombre del cliente'); return; }
+  if(!fecha){ alert('Ingresá la fecha'); return; }
+  if(hi >= hf){ alert('La hora de fin debe ser mayor a la de inicio'); return; }
+
+  var obj = {
+    id: id || ('tu_' + Date.now()),
+    fecha: fecha,
+    hora_inicio: hi,
+    hora_fin: hf,
+    cliente: cliente,
+    asunto: asunto || null,
+    resp: resp || null,
+    color: color || '#3b82f6',
+    creado_por: CU ? CU.nombre : ''
+  };
+
+  if(!DB.turnos) DB.turnos = [];
+  if(id){
+    var idx = DB.turnos.findIndex(function(t){ return t.id===id; });
+    if(idx > -1) DB.turnos[idx] = obj;
+    else DB.turnos.push(obj);
+  } else {
+    DB.turnos.push(obj);
+  }
+
+  sv();
+  supaUpsert('turnos', [obj]).catch(function(e){ console.error('Turnero upsert error:', e); });
+
+  cM('mTurno');
+  if(CS === 'turnero') rTurnero();
+  else actualizarWidgetTurnero();
+}
+
+function eliminarTurno(id) {
+  if(!confirm('¿Eliminar este turno?')) return;
+  DB.turnos = (DB.turnos||[]).filter(function(t){ return t.id !== id; });
+  sv();
+  supaDelete('turnos', id).catch(function(e){ console.error('Turnero delete error:', e); });
+  cM('mTurno');
+  if(CS === 'turnero') rTurnero();
+  else actualizarWidgetTurnero();
+}
+
+// ===================== FIN MODULO TURNERO =====================
 </script>
 </body>
 </html>
