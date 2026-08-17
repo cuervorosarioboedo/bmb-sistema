@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%230F1B2D'/><text y='72' x='50' text-anchor='middle' font-size='58' font-family='system-ui,sans-serif' font-weight='700' fill='%23C9A84C'>B</text></svg>">
-<title>BMB 2.0 v2.13 — Sistema Juridico BMB y Asociados</title>
+<title>BMB 2.0 v2.14 — Sistema Juridico BMB y Asociados</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif}
 :root{--navy:#1A4B8C;--navy2:#1a5fa8;--gold:#C9A84C;--red:#C0392B;--amber:#D97706;--green:#2D7A4F;--cream:#F8F5EF;--muted:#6b7a8d;--border:#d0d8e4;--text:#1a2535;--textl:#4a5568;--foco-bg:#FFF7ED;--foco-bd:#F97316;--foco-tx:#C2410C;--lor:#7C3AED}
@@ -187,7 +187,7 @@ textarea.fc{min-height:80px;resize:vertical}
 <div class="lp" id="LP">
   <div class="lc">
     <div class="lm" onclick="intentarNavHome()">BMB<span>.</span></div>
-    <div class="ls">Sistema Juridico v2.13 · BMB y Asociados · Rosario</div>
+    <div class="ls">Sistema Juridico v2.14 · BMB y Asociados · Rosario</div>
     <input type="text" id="lu" placeholder="Usuario" autocomplete="username"/>
     <input type="password" id="lp2" placeholder="Contrasena" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"/>
     <button class="btn-login" onclick="login()">Ingresar al sistema</button>
@@ -261,6 +261,9 @@ textarea.fc{min-height:80px;resize:vertical}
 <div class="mb" id="mEditTxt"><div class="md mdm" id="mEditTxtI"></div></div>
 <div class="mb" id="mAlertaCrit"><div class="md mdm" id="mAlertaCritI"></div></div>
 <div class="mb" id="mTurno"><div class="md mdm" id="mTurnoI"></div></div>
+<div class="mb" id="mFinObl"><div class="md mdm" id="mFinOblI"></div></div>
+<div class="mb" id="mFinMov"><div class="md mdm" id="mFinMovI"></div></div>
+<div class="mb" id="mAlertaCuota"><div class="md mdm" id="mAlertaCuotaI"></div></div>
 <script>
 
 // ============================================================
@@ -372,7 +375,8 @@ async function supaCargarTodo() {
     var tablas = [
       'procesos','agendas','procuraciones','vencimientos',
       'intervinientes','cc:cuenta_corriente','lorenzo','lor_agenda',
-      'finanzas','usuarios','turnos'
+      'finanzas','usuarios','turnos',
+      'finObligaciones:fin_obligaciones','finCuotas:fin_cuotas','finMovimientos:fin_movimientos'
     ];
     var resultados = await Promise.all(tablas.map(function(t) {
       var partes = t.split(':');
@@ -645,7 +649,8 @@ function supaEliminar(tabla, id) {
   var tablaReal = {
     agendas:'agendas', procuraciones:'procuraciones', vencimientos:'vencimientos',
     intervinientes:'intervinientes', cc:'cuenta_corriente', finanzas:'finanzas',
-    lorAgenda:'lor_agenda', lorenzo:'lorenzo', procesos:'procesos'
+    lorAgenda:'lor_agenda', lorenzo:'lorenzo', procesos:'procesos',
+    finObligaciones:'fin_obligaciones', finCuotas:'fin_cuotas', finMovimientos:'fin_movimientos'
   }[tabla] || tabla;
   supaDelete(tablaReal, id).catch(function(e) {
     console.warn('[BMB Supabase] Error al eliminar en', tablaReal, ':', e.message);
@@ -715,8 +720,8 @@ var USUARIOS_BASE=[{id:'banuls',pass:'bmb2024',nombre:'Dr. Emanuel Banuls',rol:'
 var INSTANCIAS=['SRT (Superintendencia de Riesgos del Trabajo)','Ministerio de Trabajo','Extrajudicial - Accidente de transito','Extrajudicial - Laboral','Extrajudicial - Inmobiliario','Primera Instancia Judicial','Segunda Instancia - Camara','Tercera Instancia - CSJSF','Oficina de Procesos Sucesorios'];
 var JUZGADOS_BASE=['Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 3 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 4 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 5 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 6 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 7 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 8 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 9 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 10 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 11 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 12 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 13 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 14 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 15 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 16 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 17 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 18 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 19 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 20 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 21 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 22 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 1 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 2 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 3 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 4 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 5 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 6 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 7 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 8 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 9 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 10 - Rosario','Juzgado Unipersonal de Familia N° 1 - Rosario','Juzgado Unipersonal de Familia N° 2 - Rosario','Juzgado Unipersonal de Familia N° 3 - Rosario','Juzgado Unipersonal de Familia N° 4 - Rosario','Juzgado Unipersonal de Familia N° 5 - Rosario','Juzgado Unipersonal de Familia N° 6 - Rosario','Juzgado Unipersonal de Familia N° 7 - Rosario','Juzgado Unipersonal de Familia N° 8 - Rosario','Juzgado Unipersonal de Familia N° 9 - Rosario','Juzgado Unipersonal de Familia N° 10 - Rosario','Juzgado Unipersonal de Familia N° 11 - Rosario','Juzgado Unipersonal de Familia N° 12 - Rosario','Juzgado de Primera Instancia de Distrito en Ejecucion Civil N° 1 - Rosario','Juzgado de Primera Instancia de Distrito en Ejecucion Civil N° 2 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 1 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 2 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 3 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 4 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 5 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 6 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 7 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 8 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 9 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 10 - Rosario','Camara de Apelaciones en lo Laboral Sala I - Rosario','Camara de Apelaciones en lo Laboral Sala II - Rosario','Camara de Apelaciones en lo Laboral Sala III - Rosario','Camara de Apelacion en lo Contencioso Administrativo - Rosario','Camara de Apelacion en lo Penal Sala I - Rosario','Camara de Apelacion en lo Penal Sala II - Rosario','Camara de Apelacion en lo Penal Sala III - Rosario','Camara de Apelacion en lo Penal Sala IV - Rosario','Camara de Apelacion de Ejecucion Penal y Supervision Carcelaria - Rosario','Juzgado de Primera Instancia de Circuito de Arroyo Seco','Juzgado de Primera Instancia de Circuito de Villa Gobernador Galvez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 1 - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 2 - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 3 - Canada de Gomez','Juzgado de Primera Instancia de Familia - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 1 - Casilda','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 2 - Casilda','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 3 - Casilda','Juzgado de Primera Instancia de Familia - Casilda','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - San Lorenzo','Juzgado de Primera Instancia de Familia - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Laboral - San Lorenzo','Juzgado de Primera Instancia de Circuito - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - Villa Constitucion','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - Villa Constitucion','Juzgado de Primera Instancia de Familia - Villa Constitucion','Oficina de Procesos Sucesorios - Rosario','SRT - Rosario','Ministerio de Trabajo - Rosario','Tribunal en lo Laboral N° 2 - San Nicolas','Tribunal en lo Laboral N° 3 - San Nicolas','Asesoria de Menores N° 1 - Rosario','Extrajudicial'];
 var LOR_CATS=['Turno medico','Fonoaudiologia','Psicopedagogia','Psicologia','Gimnasia','Escuela','Cumpleanos','Evento especial','Otro'];
-var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],reagendSnap:[],turnos:[],juzgados:JUZGADOS_BASE.slice(),tp:['Accidente de Trabajo LRT','Enfermedad Laboral LRT','Laboral - Cobro de Pesos','Laboral - Despido','Sucesion','Danos y Perjuicios','Derecho Inmobiliario - Locacion','Derecho Inmobiliario - Usucapion','Cobro de Pesos','Defensa del Consumidor','SRT','Ministerio de Trabajo','Extrajudicial','Ejecutivo','Divorcio','Alimentos','Otro'],usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
-var CU=null,CS='dash',_histNav=[],_listadoFiltrado=[],_qFiltro='',_alertaCriticaMostrada=false;
+var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],reagendSnap:[],turnos:[],finObligaciones:[],finCuotas:[],finMovimientos:[],juzgados:JUZGADOS_BASE.slice(),tp:['Accidente de Trabajo LRT','Enfermedad Laboral LRT','Laboral - Cobro de Pesos','Laboral - Despido','Sucesion','Danos y Perjuicios','Derecho Inmobiliario - Locacion','Derecho Inmobiliario - Usucapion','Cobro de Pesos','Defensa del Consumidor','SRT','Ministerio de Trabajo','Extrajudicial','Ejecutivo','Divorcio','Alimentos','Otro'],usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
+var CU=null,CS='dash',_histNav=[],_listadoFiltrado=[],_qFiltro='',_alertaCriticaMostrada=false,_alertaCuotaMostrada=false;
 var fR2='',fT2='',fB2='',fP2='',fI2='';
 function sv(){
   try{
@@ -737,6 +742,9 @@ function ld(){
     if(p.alOrder)DB.alOrder=p.alOrder;
     if(p.finanzas)DB.finanzas=p.finanzas;
     if(p.reagendSnap)DB.reagendSnap=p.reagendSnap;
+    if(p.finObligaciones)DB.finObligaciones=p.finObligaciones;
+    if(p.finCuotas)DB.finCuotas=p.finCuotas;
+    if(p.finMovimientos)DB.finMovimientos=p.finMovimientos;
     if(p.juzgados&&p.juzgados.length){var mg=JUZGADOS_BASE.slice();p.juzgados.forEach(function(j){if(mg.indexOf(j)<0)mg.push(j);});DB.juzgados=mg;}
     if(p.tp&&p.tp.length)DB.tp=p.tp;
     if(p.usuarios&&p.usuarios.length){DB.usuarios=p.usuarios;var uD=DB.usuarios.find(function(u){return u.id==='dacenzo';});if(uD)uD.nombre='Dr. Nazareno Dacenzo';USUARIOS_BASE.forEach(function(ub){var ex=DB.usuarios.find(function(u){return u.id===ub.id;});if(!ex)DB.usuarios.push(JSON.parse(JSON.stringify(ub)));});}
@@ -978,7 +986,8 @@ function syncManual(){
       if(btn){btn.disabled=false;btn.textContent='☁ Sync';}
       supaIndicador('ok');
       if(CU){pinRestore();actualizarBadge();mostrarBanner();if(CS==='reportes'){/* preservar preview */}else if(CS==='proc'){if(document.getElementById('procLista'))rProcLista();else rProc();}else if(CS==='agenda'){if(document.getElementById('ag-lista'))renderAgLista();else rAgenda();}else if(CS==='procuracion'){if(document.getElementById('proc-lista'))renderProcLista();else rProcuracion();}else{var fns={dash:rDash,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
-        if(!_alertaCriticaMostrada)mostrarAlertaCriticaCheck();}
+        if(!_alertaCriticaMostrada)mostrarAlertaCriticaCheck();
+        chequearAlertasCuotasCheck();}
     });
   }
 
@@ -1175,10 +1184,8 @@ function vProc(p){
   h+='<div id="PT-vc" class="hidden"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:13px;color:var(--muted)">Audiencias y vencimientos</div><button class="btn bp bsm" onclick="oVcP(\''+p.id+'\')">+ Nueva</button></div>';
   h+=vencs.length?vencs.map(function(vx){var df=dFT(vx.f);var c2=df<=0?'var(--red)':df<=3?'var(--red)':df<=7?'var(--amber)':'var(--navy)';var badge=df<0?'<span class="iu ic">VENCIDO</span>':df<=VENC_CRIT?'<span class="iu ic">'+df+'d</span>':df<=VENC_AL?'<span class="iu ia">'+df+'d</span>':'<span class="iu io">'+df+'d</span>';var txSt=vx.r?'font-weight:400;color:var(--muted);':'font-weight:600;';return'<div class="vc-card"><div class="vc-fb" style="background:'+c2+'"><div class="vc-day">'+fF(vx.f).substr(0,2)+'</div><div class="vc-mon">'+mesAbr(vx.f)+'</div></div><div style="flex:1"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'+badge+(vx.ca2?'<span class="vc-prep">PREP</span>':'')+(vx.conf2?'<span class="vc-conf">✓ CONF</span>':'')+(vx.r?'<span style="color:var(--green);font-size:11px;font-weight:500">✓ Realizado</span>':'')+'</div><div style="font-size:14px;'+txSt+'">'+(vx.ac||'-')+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px">'+(vx.ho&&vx.ho!=='00:00'?vx.ho+'h · ':'')+(vx.re2?'Resp: '+vx.re2.split(' ').pop():'')+'</div><div style="display:flex;align-items:center;gap:6px;margin-top:6px"><label style="font-size:11px;color:var(--muted)">Fecha:</label><input type="date" id="vf-'+vx.id+'" value="'+(vx.f||'')+'" style="border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px"><button class="btn bs bsm" onclick="guardarFechaVc(\''+vx.id+'\',\''+p.id+'\')">Confirmar fecha</button></div></div><div style="display:flex;flex-direction:column;gap:4px">'+(!vx.r?'<button class="btn bs bsm" onclick="mVR(\''+vx.id+'\',\''+p.id+'\')">✓ Realizado</button>':'')+'<button class="btn '+(vx.conf2?'bd':'bs')+' bsm" onclick="toggleConf(\''+vx.id+'\',\''+p.id+'\')">'+( vx.conf2?'Desconf.':'📌 Confirmar')+'</button><button class="btn bs bsm" onclick="editarVcModal(\''+vx.id+'\',\''+p.id+'\')">✏️ Editar</button><button class="bi" onclick="elimVcProc(\''+vx.id+'\',\''+p.id+'\')">🗑️</button></div></div>';}).join(''):'<div style="color:var(--muted);font-size:13px">Sin vencimientos</div>';
   h+='</div>';
-  var cc2=DB.cc.filter(function(c3){return c3.pid===p.id;});var sl=cc2.reduce(function(a,c3){return a+(parseFloat(c3.hb||0)-parseFloat(c3.db||0));},0);
-  h+='<div id="PT-cc" class="hidden"><div class="cs"><span>Saldo cuenta corriente</span><span style="color:'+(sl>=0?'var(--green)':'var(--red)')+'">$'+sl.toLocaleString('es-AR',{minimumFractionDigits:2})+'</span></div><div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn bp bsm" onclick="oCP(\''+p.id+'\')">+ Movimiento</button></div>';
-  h+=cc2.length?'<div class="cc-tabla-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Concepto</th><th>Divisa</th><th>Debe</th><th>Haber</th></tr></thead><tbody>'+cc2.map(function(cx){return'<tr><td>'+fF(cx.f)+'</td><td>'+(cx.co||'-')+'</td><td>'+(cx.di||'$')+'</td><td style="color:var(--red)">'+(cx.db?'$'+parseFloat(cx.db).toLocaleString('es-AR'):'-')+'</td><td style="color:var(--green)">'+(cx.hb?'$'+parseFloat(cx.hb).toLocaleString('es-AR'):'-')+'</td></tr>';}).join('')+'</tbody></table></div>':'<div style="color:var(--muted);font-size:13px">Sin movimientos</div>';
-  h+='</div>';
+  var cc2=DB.cc.filter(function(c3){return c3.pid===p.id;});
+  h+='<div id="PT-cc" class="hidden">'+renderFinCC(p,cc2)+'</div>';
   var ip=DB.intervinientes.filter(function(i){return i.pid===p.id;});
   h+='<div id="PT-iv" class="hidden"><div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn bp bsm" onclick="oIntP(\''+p.id+'\')">+ Interviniente</button></div>';
   h+=ip.length?'<table class="tbl"><thead><tr><th>Tipo</th><th>Nombre</th><th>DNI/CUIT</th><th>Contacto</th><th></th></tr></thead><tbody>'+ip.map(function(i){return'<tr><td><span style="background:#EEF2FF;color:#3730A3;padding:2px 8px;border-radius:4px;font-size:11px">'+(i.ti||'-')+'</span></td><td>'+(i.no||'-')+'</td><td>'+(i.dn||'-')+'</td><td>'+(i.em||i.tel||'-')+'</td><td><button class="bi" onclick="dlI(\''+i.id+'\',\''+p.id+'\')">🗑️</button></td></tr>';}).join('')+'</tbody></table>':'<div style="color:var(--muted);font-size:13px">Sin intervinientes</div>';
@@ -1936,6 +1943,315 @@ function eliminarTurno(id) {
 }
 
 // ===================== FIN MODULO TURNERO =====================
+
+// ===================== MODULO CC FINANCIERA v2.14 =====================
+
+// — Calcular importe abonado de una cuota desde movimientos activos
+function fcAbonado(cuotaId) {
+  return (DB.finMovimientos||[]).filter(function(m){
+    return m.cuota_id===cuotaId && m.tipo==='ingreso' && !m.anulado;
+  }).reduce(function(s,m){ return s+(parseFloat(m.importe)||0); }, 0);
+}
+
+// — Estado calculado de una cuota (nunca almacenado)
+function fcEstCuota(cuota) {
+  var h2=hoy(), ab=fcAbonado(cuota.id), imp=parseFloat(cuota.importe)||0;
+  if(ab>=imp) return 'pagada';
+  if(ab>0) return cuota.vencimiento<h2?'vencida':'parcial';
+  return cuota.vencimiento<h2?'vencida':'pendiente';
+}
+
+// — Badge visual de estado de cuota
+function fcBadgeCuota(est) {
+  var m={pendiente:{b:'#FEF3C7',c:'#92400E',t:'Pendiente'},pagada:{b:'#ECFDF5',c:'#065F46',t:'Pagada ✓'},parcial:{b:'#EFF6FF',c:'#1D4ED8',t:'Parcialmente pagada'},vencida:{b:'#FEE2E2',c:'#991B1B',t:'Vencida'},cancelada:{b:'#F3F4F6',c:'#6B7280',t:'Cancelada'}}[est]||{b:'#F3F4F6',c:'#6B7280',t:est};
+  return '<span style="background:'+m.b+';color:'+m.c+';border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">'+m.t+'</span>';
+}
+
+// — Render principal de la pestaña Cuenta Cte (reemplaza contenido PT-cc)
+function renderFinCC(p, cc2Legado) {
+  var pid=p.id;
+  var obl=(DB.finObligaciones||[]).find(function(o){ return o.pid===pid; });
+  var movs=(DB.finMovimientos||[]).filter(function(m){ return m.pid===pid; });
+  var movsActivos=movs.filter(function(m){ return !m.anulado; });
+  var cuotas=obl?(DB.finCuotas||[]).filter(function(c){ return c.obl_id===obl.id; }).sort(function(a,b){ return a.nro-b.nro; }):[];
+  var totalIng=movsActivos.filter(function(m){ return m.tipo==='ingreso'; }).reduce(function(s,m){ return s+(parseFloat(m.importe)||0); },0);
+  var montoPact=obl?(parseFloat(obl.monto_total)||0):0;
+  var saldo=montoPact-totalIng;
+  var h='';
+
+  // — RESUMEN SUPERIOR
+  if(obl) {
+    var proxCuota=cuotas.find(function(c){ var e=fcEstCuota(c); return e!=='pagada'&&e!=='cancelada'; });
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1rem">';
+    var lblMonto=obl.unidad==='jus'?numFmt(parseFloat(obl.jus_qtd)||0)+' JUS ≈ $'+numFmt(montoPact):'$'+numFmt(montoPact);
+    h+='<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:#1D4ED8;font-weight:700;margin-bottom:3px;text-transform:uppercase">Monto pactado</div><div style="font-size:14px;font-weight:700;color:#1D4ED8">'+lblMonto+'</div></div>';
+    h+='<div style="background:#ECFDF5;border:1px solid #BBF7D0;border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:#065F46;font-weight:700;margin-bottom:3px;text-transform:uppercase">Total abonado</div><div style="font-size:14px;font-weight:700;color:#065F46">$'+numFmt(totalIng)+'</div></div>';
+    var slColor=saldo<=0?'#065F46':'#991B1B',slBg=saldo<=0?'#ECFDF5':'#FEF2F2',slBorder=saldo<=0?'#BBF7D0':'#FECACA';
+    h+='<div style="background:'+slBg+';border:1px solid '+slBorder+';border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:'+slColor+';font-weight:700;margin-bottom:3px;text-transform:uppercase">Saldo pendiente</div><div style="font-size:14px;font-weight:700;color:'+slColor+'">$'+numFmt(Math.max(0,saldo))+'</div></div>';
+    if(proxCuota){var df2=dFT(proxCuota.vencimiento),pvColor=df2<0?'#991B1B':df2===0?'#92400E':'#065F46';h+='<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:#92400E;font-weight:700;margin-bottom:3px;text-transform:uppercase">Próx. vencimiento</div><div style="font-size:12px;font-weight:700;color:'+pvColor+'">'+fF(proxCuota.vencimiento)+'</div><div style="font-size:11px;color:'+pvColor+'">$'+numFmt(parseFloat(proxCuota.importe)||0)+'</div></div>';}
+    else h+='<div style="background:#F3F4F6;border:1px solid #E5E7EB;border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:#6B7280;font-weight:700;margin-bottom:3px;text-transform:uppercase">Próx. vencimiento</div><div style="font-size:12px;color:#6B7280">Sin cuotas pendientes</div></div>';
+    h+='</div>';
+    if(obl.unidad==='jus') h+='<div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:8px;padding:10px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:12px;font-weight:700;color:#5B21B6">Honorarios en JUS</div><div style="font-size:12px;color:#5B21B6">'+numFmt(parseFloat(obl.jus_qtd)||0)+' JUS × $'+numFmt(parseFloat(obl.jus_valor)||0)+' ('+fF(obl.jus_fecha||hoy())+')</div></div><button class="btn bsm" style="background:#5B21B6;color:#fff" onclick="oActualizarJUS(\''+pid+'\')">Actualizar valor JUS</button></div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem"><button class="btn bp bsm" onclick="oFinMov(\''+pid+'\',null)">+ Registrar movimiento</button><button class="btn bs bsm" onclick="oConfigObl(\''+pid+'\')">⚙️ Editar configuración</button></div>';
+  } else {
+    h+='<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:1.5rem;text-align:center;margin-bottom:1rem"><div style="font-size:20px;margin-bottom:8px">💰</div><div style="font-size:14px;font-weight:600;color:#1D4ED8;margin-bottom:4px">Sin obligación financiera configurada</div><div style="font-size:12px;color:#64748b;margin-bottom:12px">Configure el monto pactado para llevar el seguimiento financiero de esta causa.</div><button class="btn bp" onclick="oConfigObl(\''+pid+'\')">💰 Configurar honorarios / monto pactado</button></div>';
+    h+='<div style="margin-bottom:1rem"><button class="btn bp bsm" onclick="oFinMov(\''+pid+'\',null)">+ Registrar movimiento</button></div>';
+  }
+
+  // — PLAN DE CUOTAS
+  if(obl && obl.modalidad==='cuotas' && cuotas.length) {
+    var pagadas=cuotas.filter(function(c){ return fcEstCuota(c)==='pagada'; }).length;
+    h+='<div class="cd" style="margin-bottom:1rem"><div class="ch"><span class="ctl">Plan de cuotas</span><span style="font-size:12px;color:var(--muted)">'+pagadas+'/'+cuotas.length+' pagadas</span></div>';
+    h+='<div class="cc-tabla-wrap"><table class="tbl"><thead><tr><th>N°</th><th>Vencimiento</th><th>Importe</th><th>Abonado</th><th>Saldo</th><th>Estado</th><th></th></tr></thead><tbody>';
+    cuotas.forEach(function(cuota){
+      var est=fcEstCuota(cuota),ab=fcAbonado(cuota.id),imp=parseFloat(cuota.importe)||0,sc=imp-ab;
+      var rowBg=est==='pagada'?'#F0FDF4':est==='vencida'?'#FEF2F2':'#fff';
+      h+='<tr style="background:'+rowBg+'">';
+      h+='<td style="font-weight:700">'+cuota.nro+'</td><td>'+fF(cuota.vencimiento)+'</td>';
+      h+='<td style="font-weight:600">$'+numFmt(imp)+'</td><td style="color:var(--green)">$'+numFmt(ab)+'</td>';
+      h+='<td style="color:'+(sc>0?'var(--red)':'var(--green)')+'">$'+numFmt(Math.max(0,sc))+'</td>';
+      h+='<td>'+fcBadgeCuota(est)+'</td>';
+      h+='<td>'+(est!=='pagada'&&est!=='cancelada'?'<button class="btn bp bsm" onclick="oFinMov(\''+pid+'\',\''+cuota.id+'\')">Pago</button>':'')+'</td></tr>';
+    });
+    h+='</tbody></table></div></div>';
+  }
+
+  // — MOVIMIENTOS
+  h+='<div class="cd" style="margin-bottom:1rem"><div class="ch"><span class="ctl">Movimientos registrados</span></div>';
+  if(!movs.length) {
+    h+='<div style="padding:1rem;color:var(--muted);font-size:13px">Sin movimientos registrados.</div>';
+  } else {
+    var allMovsOrden=movs.slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha)||a.id.localeCompare(b.id); });
+    var saldoAcum=0;
+    h+='<div class="cc-tabla-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Ingreso</th><th>Egreso</th><th>Saldo acum.</th><th>Medio</th><th>Por</th><th></th></tr></thead><tbody>';
+    allMovsOrden.forEach(function(m){
+      var isAnul=m.anulado;
+      if(!isAnul){if(m.tipo==='ingreso')saldoAcum+=(parseFloat(m.importe)||0);else saldoAcum-=(parseFloat(m.importe)||0);}
+      var st=isAnul?'text-decoration:line-through;opacity:.5;':'';
+      h+='<tr style="'+(isAnul?'background:#f9f9f9':'')+'"><td style="font-size:12px;'+st+'">'+fF(m.fecha)+'</td>';
+      h+='<td style="'+st+'">'+esc((m.concepto||'-').substr(0,35))+'</td>';
+      h+='<td><span style="background:'+(m.tipo==='ingreso'?'#ECFDF5':'#FEF2F2')+';color:'+(m.tipo==='ingreso'?'#065F46':'#991B1B')+';border-radius:4px;padding:2px 6px;font-size:11px;font-weight:600'+(isAnul?';opacity:.5':'')+'">'+( m.tipo==='ingreso'?'Ingreso':'Egreso')+'</span></td>';
+      h+='<td style="color:var(--green);font-weight:600;'+st+'">'+(m.tipo==='ingreso'?'$'+numFmt(parseFloat(m.importe)||0):'-')+'</td>';
+      h+='<td style="color:var(--red);font-weight:600;'+st+'">'+(m.tipo==='egreso'?'$'+numFmt(parseFloat(m.importe)||0):'-')+'</td>';
+      h+='<td style="font-weight:600;color:'+(saldoAcum>=0?'var(--green)':'var(--red)')+';'+st+'">'+(isAnul?'—':'$'+numFmt(saldoAcum))+'</td>';
+      h+='<td style="font-size:11px;color:var(--muted);'+st+'">'+(m.medio_pago||'-')+'</td>';
+      h+='<td style="font-size:11px;color:var(--muted);'+st+'">'+(m.creado_por||'-').split(' ').pop()+'</td>';
+      h+='<td>'+(isAnul?'<span style="font-size:10px;color:var(--muted)">Anulado</span>':'<button class="bi" onclick="anularFinMov(\''+m.id+'\',\''+pid+'\')" title="Anular">🗑️</button>')+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  }
+  h+='</div>';
+
+  // — DATOS HISTÓRICOS ANTERIORES (DB.cc — solo lectura)
+  if(cc2Legado && cc2Legado.length) {
+    var slLeg=cc2Legado.reduce(function(a,c3){ return a+(parseFloat(c3.hb||0)-parseFloat(c3.db||0)); },0);
+    h+='<div class="cd" style="margin-bottom:1rem"><div class="ch"><span class="ctl" style="font-size:12px;color:var(--muted)">Historial anterior (solo lectura)</span><span style="font-size:12px;color:'+(slLeg>=0?'var(--green)':'var(--red)')+'">Saldo: $'+slLeg.toLocaleString('es-AR',{minimumFractionDigits:2})+'</span><button class="btn bp bsm" onclick="oCP(\''+pid+'\')">+ Mov. histórico</button></div>';
+    h+='<div class="cc-tabla-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Concepto</th><th>Div.</th><th>Debe</th><th>Haber</th></tr></thead><tbody>';
+    cc2Legado.forEach(function(cx){ h+='<tr><td>'+fF(cx.f)+'</td><td>'+(cx.co||'-')+'</td><td>'+(cx.di||'$')+'</td><td style="color:var(--red)">'+(cx.db?'$'+parseFloat(cx.db).toLocaleString('es-AR'):'-')+'</td><td style="color:var(--green)">'+(cx.hb?'$'+parseFloat(cx.hb).toLocaleString('es-AR'):'-')+'</td></tr>'; });
+    h+='</tbody></table></div></div>';
+  }
+  return h;
+}
+
+// — Modal configuración de obligación financiera por causa
+function oConfigObl(pid) {
+  var obl=(DB.finObligaciones||[]).find(function(o){ return o.pid===pid; });
+  var cuotasExist=obl?(DB.finCuotas||[]).filter(function(c){ return c.obl_id===obl.id; }):[];
+  var hasCuotas=cuotasExist.length>0;
+  var showJUS=!!(obl&&obl.unidad==='jus');
+  var curMod=obl?obl.modalidad:'total';
+  var h='<div class="mh"><div class="mt2">💰 '+(obl?'Editar':'Configurar')+' honorarios / monto pactado</div><button class="bi" onclick="cM(\'mFinObl\')">✕</button></div>';
+  h+='<input type="hidden" id="fobl-pid" value="'+pid+'"><input type="hidden" id="fobl-id" value="'+(obl?obl.id:'')+'"><div style="padding:0 .25rem">';
+  h+='<div class="fg"><label class="fl req">Unidad del monto</label><select class="fc" id="fobl-unidad" onchange="fcToggleJUS()"><option value="pesos"'+((!obl||obl.unidad==='pesos')?' selected':'')+'>$ Pesos argentinos</option><option value="jus"'+(showJUS?' selected':'')+'>JUS (unidades jus)</option></select></div>';
+  h+='<div id="fobl-jus-zona" style="'+(showJUS?'':'display:none')+'"><div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:8px;padding:12px;margin-bottom:12px">';
+  h+='<div class="fr3"><div class="fg"><label class="fl req">Cantidad de JUS</label><input class="fc" type="number" id="fobl-jus-qtd" step="0.01" value="'+(obl&&obl.jus_qtd||'')+'" oninput="fcCalcEquivJUS()"></div>';
+  h+='<div class="fg"><label class="fl req">Valor JUS ($)</label><input class="fc" type="number" id="fobl-jus-val" step="0.01" value="'+(obl&&obl.jus_valor||'')+'" oninput="fcCalcEquivJUS()"></div>';
+  h+='<div class="fg"><label class="fl req">Fecha del valor</label><input class="fc" type="date" id="fobl-jus-fecha" value="'+(obl&&obl.jus_fecha||hoy())+'"></div></div>';
+  h+='<div style="font-size:13px;color:#5B21B6;font-weight:600;margin-top:4px">Equivalente: <span id="fobl-equiv">$'+(obl&&obl.unidad==='jus'?numFmt((parseFloat(obl.jus_qtd)||0)*(parseFloat(obl.jus_valor)||0)):'0')+'</span></div></div></div>';
+  h+='<div id="fobl-pesos-zona" style="'+(showJUS?'display:none':'')+'"><div class="fg"><label class="fl req">Monto total pactado ($)</label><input class="fc" type="number" id="fobl-monto" step="0.01" value="'+(obl&&obl.unidad==='pesos'?obl.monto_total||'':'')+'" placeholder="0.00"></div></div>';
+  h+='<div class="fg"><label class="fl req">Modalidad de pago</label><select class="fc" id="fobl-mod" onchange="fcToggleCuotas()"><option value="total"'+(curMod==='total'?' selected':'')+'>Pago único</option><option value="cuotas"'+(curMod==='cuotas'?' selected':'')+'>En cuotas</option></select></div>';
+  h+='<div id="fobl-cuotas-zona" style="'+(curMod==='cuotas'?'':'display:none')+'">';
+  if(hasCuotas) h+='<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400E;margin-bottom:8px">⚠ Ya existen '+cuotasExist.length+' cuotas. Regenerar el plan reemplazará las que no tengan pagos registrados.</div>';
+  h+='<div class="fr3"><div class="fg"><label class="fl req">Cantidad de cuotas</label><input class="fc" type="number" id="fobl-ncuotas" min="1" max="120" value="'+(hasCuotas?cuotasExist.length:12)+'" oninput="fcPrevCuotas()"></div>';
+  h+='<div class="fg"><label class="fl req">Vencimiento 1ª cuota</label><input class="fc" type="date" id="fobl-fcuota1" value="'+(hasCuotas?cuotasExist[0].vencimiento:hoy())+'" onchange="fcPrevCuotas()"></div>';
+  h+='<div class="fg"><label class="fl">Importe por cuota ($)</label><input class="fc" type="number" id="fobl-monto-cuota" step="0.01" value="'+(hasCuotas?cuotasExist[0].importe:'')+'" placeholder="Auto" oninput="fcPrevCuotas()"></div></div>';
+  h+='<div id="fobl-cuotas-prev" style="font-size:12px;color:var(--muted);margin-top:4px"></div></div>';
+  h+='<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem"><button class="btn bs" onclick="cM(\'mFinObl\')">Cancelar</button><button class="btn bp" onclick="gConfigObl()">💾 Guardar</button></div></div>';
+  document.getElementById('mFinOblI').innerHTML=h;
+  abrirModal('mFinObl');
+}
+function fcToggleJUS(){var u=document.getElementById('fobl-unidad').value;var jz=document.getElementById('fobl-jus-zona'),pz=document.getElementById('fobl-pesos-zona');if(jz)jz.style.display=u==='jus'?'':'none';if(pz)pz.style.display=u==='jus'?'none':'';}
+function fcCalcEquivJUS(){var q=parseFloat(document.getElementById('fobl-jus-qtd').value)||0,val=parseFloat(document.getElementById('fobl-jus-val').value)||0,el=document.getElementById('fobl-equiv');if(el)el.textContent='$'+numFmt(q*val);}
+function fcToggleCuotas(){var m=document.getElementById('fobl-mod').value,cz=document.getElementById('fobl-cuotas-zona');if(cz)cz.style.display=m==='cuotas'?'':'none';if(m==='cuotas')fcPrevCuotas();}
+function fcPrevCuotas(){
+  var n=parseInt(document.getElementById('fobl-ncuotas').value)||0,f1=document.getElementById('fobl-fcuota1').value,el=document.getElementById('fobl-cuotas-prev');
+  if(!el||!n||!f1)return;
+  if(n>24){el.textContent='Se generarán '+n+' cuotas mensuales desde '+fF(f1);return;}
+  var lines=[];
+  for(var i=0;i<Math.min(n,6);i++){var pts=f1.split('-'),d=new Date(parseInt(pts[0]),parseInt(pts[1])-1+i,parseInt(pts[2]));lines.push('Cuota '+(i+1)+': '+d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}));}
+  if(n>6)lines.push('...');
+  el.innerHTML='<div style="background:#f8f9fa;border-radius:6px;padding:8px;max-height:80px;overflow-y:auto;margin-top:4px">'+lines.join('<br>')+'</div>';
+}
+function gConfigObl(){
+  var pid=document.getElementById('fobl-pid').value,existId=document.getElementById('fobl-id').value;
+  var unidad=document.getElementById('fobl-unidad').value,mod=document.getElementById('fobl-mod').value;
+  var montoTotal=0,jusQtd=null,jusValor=null,jusFecha=null;
+  if(unidad==='jus'){
+    jusQtd=parseFloat(document.getElementById('fobl-jus-qtd').value)||0;
+    jusValor=parseFloat(document.getElementById('fobl-jus-val').value)||0;
+    jusFecha=document.getElementById('fobl-jus-fecha').value;
+    if(!jusQtd||!jusValor||!jusFecha){alert('Complete los datos de JUS');return;}
+    montoTotal=jusQtd*jusValor;
+  } else {
+    montoTotal=parseFloat(document.getElementById('fobl-monto').value)||0;
+    if(!montoTotal){alert('Ingrese el monto total pactado');return;}
+  }
+  if(!DB.finObligaciones)DB.finObligaciones=[];
+  var oblExist=(DB.finObligaciones||[]).find(function(o){return o.id===existId;});
+  var obl={id:existId||uid(),pid:pid,unidad:unidad,monto_total:montoTotal,jus_qtd:jusQtd,jus_valor:jusValor,jus_fecha:jusFecha,jus_historial:oblExist?oblExist.jus_historial||[]:null,modalidad:mod,creado_por:CU?CU.nombre:'',created_at:oblExist?undefined:new Date().toISOString()};
+  if(oblExist)Object.assign(oblExist,obl);
+  else DB.finObligaciones.push(obl);
+  if(mod==='cuotas'){
+    var n2=parseInt(document.getElementById('fobl-ncuotas').value)||0,f1=document.getElementById('fobl-fcuota1').value;
+    if(!n2||!f1){alert('Complete los datos del plan de cuotas');return;}
+    var montoCuota=parseFloat(document.getElementById('fobl-monto-cuota').value)||(montoTotal/n2);
+    if(!DB.finCuotas)DB.finCuotas=[];
+    var cuotasExist2=(DB.finCuotas||[]).filter(function(c){return c.obl_id===obl.id;});
+    var cuotasSinPago=cuotasExist2.filter(function(c){return !(DB.finMovimientos||[]).some(function(m){return m.cuota_id===c.id&&m.tipo==='ingreso'&&!m.anulado;});});
+    var cuotasConPago=cuotasExist2.filter(function(c){return (DB.finMovimientos||[]).some(function(m){return m.cuota_id===c.id&&m.tipo==='ingreso'&&!m.anulado;});});
+    cuotasSinPago.forEach(function(c){DB.finCuotas=DB.finCuotas.filter(function(x){return x.id!==c.id;});supaDelete('fin_cuotas',c.id).catch(function(){});});
+    var pts2=f1.split('-');
+    for(var i2=0;i2<n2;i2++){
+      var nro=i2+1;
+      if(cuotasConPago.some(function(c){return c.nro===nro;}))continue;
+      var d2=new Date(parseInt(pts2[0]),parseInt(pts2[1])-1+i2,parseInt(pts2[2]));
+      var fechaCuota=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+      var nuevaCuota={id:uid(),obl_id:obl.id,pid:pid,nro:nro,importe:montoCuota,vencimiento:fechaCuota};
+      DB.finCuotas.push(nuevaCuota);
+      supaUpsert('fin_cuotas',[nuevaCuota]).catch(function(){});
+    }
+  }
+  sv();
+  supaUpsert('fin_obligaciones',[obl]).catch(function(e){console.error('gConfigObl error:',e);});
+  cM('mFinObl');
+  refrPT(pid,'cc');
+}
+
+// — Modal para registrar movimiento (ingreso o egreso)
+function oFinMov(pid, cuotaId) {
+  var obl=(DB.finObligaciones||[]).find(function(o){return o.pid===pid;});
+  var cuotas=obl?(DB.finCuotas||[]).filter(function(c){return c.obl_id===obl.id&&fcEstCuota(c)!=='pagada'&&fcEstCuota(c)!=='cancelada';}).sort(function(a,b){return a.nro-b.nro;}):[];
+  var egresosOpts=['Tasa de justicia','Aportes','Bonos','Cedulas','Oficios','Informes','Pericias','Edictos judiciales','Movilidad','Certificaciones','Honorarios de terceros','Escribano','Mensajeria','Fotocopias','Gastos administrativos','Otros gastos'];
+  var h='<div class="mh"><div class="mt2">📋 Registrar movimiento</div><button class="bi" onclick="cM(\'mFinMov\')">✕</button></div>';
+  h+='<input type="hidden" id="fmov-pid" value="'+pid+'"><div style="padding:0 .25rem">';
+  h+='<div class="fr"><div class="fg"><label class="fl req">Fecha</label><input class="fc" type="date" id="fmov-f" value="'+hoy()+'"></div>';
+  h+='<div class="fg"><label class="fl req">Tipo</label><select class="fc" id="fmov-tipo" onchange="fcToggleTipoMov()"><option value="ingreso">💰 Ingreso (pago del cliente)</option><option value="egreso">📤 Egreso (gasto de la causa)</option></select></div></div>';
+  h+='<div id="fmov-ing-zona"><div class="fg"><label class="fl req">Concepto</label><input class="fc" id="fmov-concepto" placeholder="Ej: Pago honorarios mes de agosto..."></div></div>';
+  h+='<div id="fmov-egr-zona" style="display:none"><div class="fg"><label class="fl req">Tipo de egreso</label><select class="fc" id="fmov-egr-tipo" onchange="var ce=document.getElementById(\'fmov-concepto\');if(ce)ce.value=this.value"><option value="">Seleccione...</option>'+egresosOpts.map(function(o){return'<option>'+o+'</option>';}).join('')+'</select></div></div>';
+  h+='<div class="fr"><div class="fg"><label class="fl req">Importe ($)</label><input class="fc" type="number" id="fmov-importe" step="0.01" min="0.01" placeholder="0.00"></div>';
+  h+='<div class="fg"><label class="fl">Medio de pago</label><select class="fc" id="fmov-medio"><option value="">Sin especificar</option><option>Efectivo</option><option>Transferencia bancaria</option><option>Depósito bancario</option><option>Mercado Pago</option><option>Tarjeta</option><option>Cheque</option><option>Otros</option></select></div></div>';
+  if(cuotas.length){h+='<div class="fg" id="fmov-cuota-zona"><label class="fl">Imputar a cuota</label><select class="fc" id="fmov-cuota"><option value="">Sin imputar a cuota específica</option>';cuotas.forEach(function(c){h+='<option value="'+c.id+'"'+(c.id===cuotaId?' selected':'')+'>Cuota '+c.nro+' — $'+numFmt(parseFloat(c.importe)||0)+' — vence '+fF(c.vencimiento)+'</option>';});h+='</select></div>';}
+  else h+='<input type="hidden" id="fmov-cuota" value="'+(cuotaId||'')+'">';
+  h+='<div class="fg"><label class="fl">Observaciones</label><textarea class="fc" id="fmov-obs" rows="2" placeholder="Observaciones adicionales..."></textarea></div>';
+  h+='<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mFinMov\')">Cancelar</button><button class="btn bp" onclick="gFinMov()">💾 Guardar</button></div></div>';
+  document.getElementById('mFinMovI').innerHTML=h;
+  abrirModal('mFinMov');
+}
+function fcToggleTipoMov(){
+  var t=document.getElementById('fmov-tipo').value;
+  var iz=document.getElementById('fmov-ing-zona'),ez=document.getElementById('fmov-egr-zona'),cz=document.getElementById('fmov-cuota-zona');
+  if(iz)iz.style.display=t==='ingreso'?'':'none';
+  if(ez)ez.style.display=t==='egreso'?'':'none';
+  if(cz)cz.style.display=t==='ingreso'?'':'none';
+}
+function gFinMov(){
+  var pid=document.getElementById('fmov-pid').value;
+  var fecha=document.getElementById('fmov-f').value,tipo=document.getElementById('fmov-tipo').value;
+  var importe=parseFloat(document.getElementById('fmov-importe').value)||0;
+  var medio=v('fmov-medio'),cuotaId=v('fmov-cuota'),obs=(document.getElementById('fmov-obs').value||'').trim();
+  var concepto='';
+  if(tipo==='egreso'){var sel=document.getElementById('fmov-egr-tipo');concepto=sel?sel.value:'';var ce=document.getElementById('fmov-concepto');if(ce&&ce.value.trim())concepto=ce.value.trim();if(!concepto){alert('Seleccione el tipo de egreso');return;}}
+  else{concepto=(document.getElementById('fmov-concepto').value||'').trim();if(!concepto){alert('El concepto es obligatorio');return;}}
+  if(!fecha){alert('La fecha es obligatoria');return;}
+  if(!importe||importe<=0){alert('El importe debe ser mayor a cero');return;}
+  var mov={id:uid(),pid:pid,fecha:fecha,concepto:concepto,tipo:tipo,importe:importe,medio_pago:medio||null,observaciones:obs||null,cuota_id:(tipo==='ingreso'&&cuotaId?cuotaId:null),creado_por:CU?CU.nombre:'',created_at:new Date().toISOString(),anulado:false,anulado_por:null,anulado_at:null};
+  if(!DB.finMovimientos)DB.finMovimientos=[];
+  DB.finMovimientos.push(mov);
+  sv();
+  supaUpsert('fin_movimientos',[mov]).catch(function(e){console.error('gFinMov error:',e);});
+  cM('mFinMov');
+  refrPT(pid,'cc');
+}
+function anularFinMov(movId, pid){
+  if(!confirm('¿Anular este movimiento? Quedará registrado para auditoría pero no computará en los saldos.'))return;
+  var mov=(DB.finMovimientos||[]).find(function(m){return m.id===movId;});
+  if(!mov)return;
+  mov.anulado=true;mov.anulado_por=CU?CU.nombre:'';mov.anulado_at=new Date().toISOString();
+  sv();
+  supaUpsert('fin_movimientos',[mov]).catch(function(e){console.error('anularFinMov error:',e);});
+  refrPT(pid,'cc');
+}
+
+// — Actualizar valor JUS (historial preservado)
+function oActualizarJUS(pid){
+  var obl=(DB.finObligaciones||[]).find(function(o){return o.pid===pid;});
+  if(!obl)return;
+  var h='<div class="mh"><div class="mt2">Actualizar valor JUS</div><button class="bi" onclick="cM(\'mFinMov\')">✕</button></div>';
+  h+='<input type="hidden" id="fjus-pid" value="'+pid+'"><div style="padding:0 .25rem">';
+  h+='<div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:8px;padding:12px;margin-bottom:12px"><div style="font-size:13px;font-weight:700;color:#5B21B6">Valor actual</div>';
+  h+='<div style="font-size:13px;color:#5B21B6">'+numFmt(parseFloat(obl.jus_qtd)||0)+' JUS × $'+numFmt(parseFloat(obl.jus_valor)||0)+' = $'+numFmt((parseFloat(obl.jus_qtd)||0)*(parseFloat(obl.jus_valor)||0))+'</div>';
+  h+='<div style="font-size:11px;color:var(--muted)">Registrado al '+fF(obl.jus_fecha||hoy())+'</div></div>';
+  h+='<div class="fr"><div class="fg"><label class="fl req">Nuevo valor JUS ($)</label><input class="fc" type="number" id="fjus-nuevo-val" step="0.01" oninput="fcCalcNuevoJUS('+(parseFloat(obl.jus_qtd)||0)+')"></div>';
+  h+='<div class="fg"><label class="fl req">Fecha del nuevo valor</label><input class="fc" type="date" id="fjus-nuevo-fecha" value="'+hoy()+'"></div></div>';
+  h+='<div style="font-size:13px;color:#5B21B6;font-weight:600;margin-bottom:12px">Nuevo equivalente: <span id="fjus-nuevo-equiv">$0</span></div>';
+  h+='<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn bs" onclick="cM(\'mFinMov\')">Cancelar</button><button class="btn bp" onclick="gActualizarJUS(\''+pid+'\')">Actualizar</button></div></div>';
+  document.getElementById('mFinMovI').innerHTML=h;
+  abrirModal('mFinMov');
+}
+function fcCalcNuevoJUS(qtd){var val=parseFloat(document.getElementById('fjus-nuevo-val').value)||0,el=document.getElementById('fjus-nuevo-equiv');if(el)el.textContent='$'+numFmt(qtd*val);}
+function gActualizarJUS(pid){
+  var obl=(DB.finObligaciones||[]).find(function(o){return o.pid===pid;});if(!obl)return;
+  var nuevoVal=parseFloat(document.getElementById('fjus-nuevo-val').value)||0,nuevaFecha=document.getElementById('fjus-nuevo-fecha').value;
+  if(!nuevoVal||!nuevaFecha){alert('Complete todos los campos');return;}
+  if(!obl.jus_historial)obl.jus_historial=[];
+  obl.jus_historial.push({valor:obl.jus_valor,fecha:obl.jus_fecha,por:CU?CU.nombre:''});
+  obl.jus_valor=nuevoVal;obl.jus_fecha=nuevaFecha;obl.monto_total=(parseFloat(obl.jus_qtd)||0)*nuevoVal;
+  sv();
+  supaUpsert('fin_obligaciones',[obl]).catch(function(){});
+  cM('mFinMov');
+  refrPT(pid,'cc');
+}
+
+// — Alertas cuotas vencidas (integración mecanismo existente)
+function chequearAlertasCuotasCheck(){
+  if(!CU)return;
+  var h2=hoy();
+  var lista=(DB.finCuotas||[]).filter(function(c){
+    var est=fcEstCuota(c);
+    if(est==='pagada'||est==='cancelada')return false;
+    if(c.vencimiento!==h2&&c.vencimiento>=h2)return false;
+    if(CU.rol!=='admin'){var proc=DB.procesos.find(function(pp){return pp.id===c.pid;});if(!proc||proc.re!==CU.nombre)return false;}
+    return true;
+  });
+  if(!lista.length)return;
+  mostrarAlertaCuotas(lista);
+}
+function mostrarAlertaCuotas(lista){
+  var h2=hoy();
+  var h='<div class="mh"><div class="mt2" style="color:#92400E">💳 Cuotas vencidas o con vencimiento hoy</div><button class="bi" onclick="cM(\'mAlertaCuota\')">✕</button></div>';
+  h+='<div style="padding:.75rem 1.25rem"><div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#92400E">Se detectaron <strong>'+lista.length+' cuota'+(lista.length!==1?'s':'')+' vencidas o con vencimiento hoy</strong> sin pago completo.</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto">';
+  lista.slice(0,10).forEach(function(c){
+    var proc=DB.procesos.find(function(pp){return pp.id===c.pid;}),esHoy=c.vencimiento===h2;
+    var badge=esHoy?'<span style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;border-radius:4px;font-size:10px;font-weight:700;padding:2px 7px">Vence HOY</span>':'<span style="background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;border-radius:4px;font-size:10px;font-weight:700;padding:2px 7px">VENCIDA</span>';
+    h+='<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;cursor:pointer" onclick="aP(\''+(proc?proc.id:'')+'\');cM(\'mAlertaCuota\')">'+(proc?esc(proc.ca):'Causa no encontrada')+'</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Cuota '+c.nro+' · $'+numFmt(parseFloat(c.importe)||0)+' · Vence: '+fF(c.vencimiento)+'</div></div>'+badge+'</div>';
+  });
+  if(lista.length>10)h+='<div style="font-size:12px;color:var(--muted);text-align:center;padding:6px">... y '+(lista.length-10)+' más</div>';
+  h+='</div><div style="margin-top:1rem;display:flex;justify-content:flex-end"><button class="btn bp bsm" onclick="cM(\'mAlertaCuota\')">Cerrar</button></div></div>';
+  document.getElementById('mAlertaCuotaI').innerHTML=h;
+  abrirModal('mAlertaCuota');
+}
+// ===================== FIN MODULO CC FINANCIERA v2.14 =====================
 </script>
 </body>
 </html>
