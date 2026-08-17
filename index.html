@@ -778,8 +778,8 @@ function validarLimiteTareas(resp,fecha,excluirId){if(!resp||!fecha)return true;
 function fF(f){if(!f)return'-';var p=f.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function fFc(f){if(!f)return'-';var p=f.split('-');return p[2]+'/'+p[1];}
 function mesAbr(f){if(!f)return'';try{return new Date(f+'T12:00:00').toLocaleDateString('es-AR',{month:'short'}).toUpperCase();}catch(e){return'';}}
-function dD(f){if(!f)return 9999;return Math.max(0,Math.floor((new Date()-new Date(f+'T12:00:00'))/86400000));}
-function dFT(f){if(!f)return 9999;return Math.floor((new Date(f+'T12:00:00')-new Date())/86400000);}
+function dD(f){if(!f)return 0;var _h=new Date();_h.setHours(0,0,0,0);return Math.floor((_h-new Date(f+'T12:00:00'))/(1000*60*60*24));}
+function dFT(f){if(!f)return 9999;var _h=new Date();_h.setHours(0,0,0,0);return Math.round((new Date(f+'T12:00:00')-_h)/(1000*60*60*24));}
 function dClass(d){if(d===9999)return'dp';if(d>=20)return'dr';if(d>=10)return'da';return'dg';}
 function pC(p){return p==='alta'?'pa2':p==='baja'?'pb':'pm';}
 function pL(p){return p==='alta'?'Alta':p==='media'?'Media':'Baja';}
@@ -1278,8 +1278,8 @@ function rVenc(){
   var l=DB.vencimientos.slice().sort(function(a,b){if(!a.r&&b.r)return-1;if(a.r&&!b.r)return 1;return a.f.localeCompare(b.f);});
   if(fs==='pend')l=l.filter(function(vx){return!vx.r;});
   if(fs==='conf')l=l.filter(function(vx){return vx.conf2&&!vx.r;});
-  if(fs==='prox'){var lm7=new Date();lm7.setDate(lm7.getDate()+7);l=l.filter(function(vx){if(vx.r)return false;var d=new Date(vx.f+'T12:00:00');return d>=new Date()&&d<=lm7;});}
-  if(fs==='prox45'){var lm45=new Date();lm45.setDate(lm45.getDate()+45);l=l.filter(function(vx){if(vx.r)return false;var d=new Date(vx.f+'T12:00:00');return d>=new Date()&&d<=lm45;});}
+  if(fs==='prox'){var _h1=new Date();_h1.setHours(0,0,0,0);var lm7=new Date(_h1);lm7.setDate(lm7.getDate()+7);l=l.filter(function(vx){if(vx.r)return false;var d=new Date(vx.f+'T12:00:00');return d>=_h1&&d<=lm7;});}
+  if(fs==='prox45'){var _h2=new Date();_h2.setHours(0,0,0,0);var lm45=new Date(_h2);lm45.setDate(lm45.getDate()+45);l=l.filter(function(vx){if(vx.r)return false;var d=new Date(vx.f+'T12:00:00');return d>=_h2&&d<=lm45;});}
   if(fr)l=l.filter(function(vx){return vx.re2===fr;});
   if(fd1)l=l.filter(function(vx){return vx.f>=fd1;});if(fd2)l=l.filter(function(vx){return vx.f<=fd2;});
   if(!l.length){h+='<div class="cd"><div style="padding:2rem;text-align:center;color:var(--muted)">Sin vencimientos</div></div>';document.getElementById('MC').innerHTML=h;return;}
@@ -1351,7 +1351,7 @@ function genPrevProcuracion(pid){
 }
 function genPrevAudiencias(){
   var resp=getRF();var fecF=getFechas();
-  var l=DB.vencimientos.filter(function(vx){if(resp&&vx.re2!==resp)return false;if(fecF.d1&&vx.f<fecF.d1)return false;if(fecF.d2&&vx.f>fecF.d2)return false;if(!vx.r&&!fecF.d1&&!fecF.d2){var lm45=new Date();lm45.setDate(lm45.getDate()+45);var d=new Date(vx.f+'T12:00:00');return d>=new Date()&&d<=lm45;}return true;}).sort(function(a,b){if(!a.r&&b.r)return-1;if(a.r&&!b.r)return 1;return a.f.localeCompare(b.f);});
+  var l=DB.vencimientos.filter(function(vx){if(resp&&vx.re2!==resp)return false;if(fecF.d1&&vx.f<fecF.d1)return false;if(fecF.d2&&vx.f>fecF.d2)return false;if(!vx.r&&!fecF.d1&&!fecF.d2){var _h3=new Date();_h3.setHours(0,0,0,0);var lm45=new Date(_h3);lm45.setDate(lm45.getDate()+45);var d=new Date(vx.f+'T12:00:00');return d>=_h3&&d<=lm45;}return true;}).sort(function(a,b){if(!a.r&&b.r)return-1;if(a.r&&!b.r)return 1;return a.f.localeCompare(b.f);});
   var c='<h2>Audiencias y Vencimientos'+(resp?' — '+resp.split(' ').pop():'')+'</h2><p style="font-size:10px;color:#666;margin-bottom:10px">'+l.length+' audiencia'+(l.length!==1?'s':'')+'</p>';
   l.forEach(function(vx){var p=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var urgBadge=df<0?'<span class="badge-crit">VENCIDO</span>':df<=VENC_CRIT?'<span class="badge-crit">'+df+'d</span>':df<=VENC_AL?'<span class="badge-alert">'+df+'d</span>':'<span class="badge-ok">OK</span>';var txSt=vx.r?'color:#888;':'font-weight:700;';c+='<div class="rep-bloque"><div class="rep-bloque-head" style="'+txSt+'">'+fF(vx.f)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho+'h':'')+(vx.re2?' · '+vx.re2.split(' ').pop():'')+(vx.ca2?' · PREPARADA':'')+(vx.conf2?' · ✓ CONFIRMADA':'')+(vx.r?' · ✓ Realizado':'')+'</div>';if(p)c+='<div class="rep-bloque-sub"><strong style="'+txSt+'">'+p.ca+'</strong>'+(p.ex?' · N°: '+p.ex:'')+(p.ju?'<br>'+p.ju:'')+'</div>';c+='<div class="rep-bloque-body" style="display:flex;justify-content:space-between;align-items:center">'+urgBadge+' <span style="'+txSt+'">'+(vx.ac||'-')+'</span>'+(!vx.r?'<button onclick="repMarcarVcRealizada(\''+vx.id+'\')" style="border:1px solid #ddd;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;background:#F0FDF4;color:#166534;font-weight:600">✓ Marcar realizada</button>':'<span style="color:var(--green);font-size:11px">✓ Realizado</span>')+'</div></div>';});
   mostrarPreview('Audiencias y Vencimientos'+(resp?' — '+resp.split(' ').pop():''),c);
