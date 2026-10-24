@@ -1032,8 +1032,11 @@ function guardarPinOrder(){
 function pinSave(){
   if(!CU)return;
   var pins=DB.procesos.filter(function(p){return p.pin;}).map(function(p){return p.id;});
-  var focos=DB.procesos.filter(function(p){return p.foco;}).map(function(p){return{id:p.id,mot:p.focoMotivo||'',f:p.focoFecha||''};});
-  var pdata=JSON.stringify({pins:pins,focos:focos,order:DB.pinOrder.slice()});
+  // focos: lista simple de ids (igual formato que pins). El motivo, si hay, va aparte en focoMotivos.
+  var focos=DB.procesos.filter(function(p){return p.foco;}).map(function(p){return p.id;});
+  var focoMotivos={};
+  DB.procesos.forEach(function(p){if(p.foco&&p.focoMotivo)focoMotivos[p.id]=p.focoMotivo;});
+  var pdata=JSON.stringify({pins:pins,focos:focos,focoMotivos:focoMotivos,order:DB.pinOrder.slice()});
   localStorage.setItem('bmb_pins_'+CU.id,pdata);
   // Guardar tambien en el registro de usuario para sincronizar entre computadoras
   CU.pins_data=pdata;
@@ -1054,7 +1057,13 @@ function pinRestore(){
     // Mantener localStorage sincronizado con lo que vino de Supabase
     if(_uFresh.pins_data||CU.pins_data)localStorage.setItem('bmb_pins_'+CU.id,raw);
     if(d.pins)d.pins.forEach(function(id){var p=DB.procesos.find(function(x){return x.id===id;});if(p)p.pin=true;});
-    if(d.focos)d.focos.forEach(function(fx){var p=DB.procesos.find(function(x){return x.id===fx.id;});if(p){p.foco=true;p.focoMotivo=fx.mot;p.focoFecha=fx.f;}});
+    // focos admite dos formatos: lista simple de ids (actual), o {id,mot,f} (formato anterior) por compatibilidad.
+    if(d.focos)d.focos.forEach(function(fx){
+      var fid=(typeof fx==='string')?fx:(fx&&fx.id);
+      var p=DB.procesos.find(function(x){return x.id===fid;});
+      if(p){p.foco=true;if(fx&&typeof fx==='object'&&fx.mot)p.focoMotivo=fx.mot;}
+    });
+    if(d.focoMotivos)Object.keys(d.focoMotivos).forEach(function(id){var p=DB.procesos.find(function(x){return x.id===id;});if(p)p.focoMotivo=d.focoMotivos[id];});
     if(d.order)DB.pinOrder=d.order;
   }catch(e){}
 }
@@ -1505,7 +1514,7 @@ function rAlertas(){
   var sinPA=todos.filter(function(p){return!tienePA(p)&&!p.pin&&!p.foco;});var cr=todos.filter(function(p){return p._i==='C'&&!p.pin&&!p.foco;});
   var h='<div class="sg sg4" style="margin-bottom:1.25rem"><div class="sc pin"><div class="sn">'+pinned.length+'</div><div class="sl">Prioridad activa</div></div><div class="sc foco"><div class="sn">'+focos.length+'</div><div class="sl">Modo Foco</div></div><div class="sc prog"><div class="sn">'+prog.length+'</div><div class="sl">Programadas</div></div><div class="sc crit"><div class="sn">'+cr.length+'</div><div class="sl">Urgencia critica</div></div></div>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin-bottom:1.5rem">';
-  RESPONSABLES.forEach(function(r){var mis=todos.filter(function(p){return p.re===r;});if(!mis.length)return;var cf=mis.filter(function(p){return p.foco;}).length,cp=mis.filter(function(p){return p.pin;}).length,cx=mis.filter(function(p){return!tienePA(p);}).length,cc2=mis.filter(function(p){return p._i==='C'&&!p.foco&&!p.pin;}).length,ca=mis.filter(function(p){return p._i==='A'&&!p.foco&&!p.pin;}).length,cp2=mis.filter(function(p){return p._i==='P';}).length;h+='<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:1rem"><div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:8px;border-bottom:1px solid #f0f0f0;padding-bottom:6px">'+r.split(' ').slice(-2).join(' ')+'</div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>📌 Prioridad</span><span style="color:#1D4ED8;font-weight:600">'+cp+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>🔥 Foco</span><span style="color:var(--foco-tx);font-weight:600">'+cf+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>🗓️ Programadas</span><span style="color:#16a34a;font-weight:600">'+cp2+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>⚠ Sin tarea</span><span style="color:#DC2626;font-weight:600">'+cx+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>🔴 Critico</span><span style="color:var(--red);font-weight:600">'+cc2+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>🟡 Alerta</span><span style="color:var(--amber);font-weight:600">'+ca+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-top:1px solid #f0f0f0;margin-top:4px"><span>Total</span><span style="font-weight:600">'+mis.length+'</span></div></div>';});
+  RESPONSABLES.forEach(function(r){var mis=todos.filter(function(p){return p.re===r;});if(!mis.length)return;var cf=mis.filter(function(p){return p.foco;}).length,cp=mis.filter(function(p){return p.pin;}).length,cx=mis.filter(function(p){return!tienePA(p);}).length,cc2=mis.filter(function(p){return p._i==='C'&&!p.foco&&!p.pin;}).length,ca=mis.filter(function(p){return p._i==='A'&&!p.foco&&!p.pin;}).length,cp2=mis.filter(function(p){return p._i==='P';}).length;h+='<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:1rem"><div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:8px;border-bottom:1px solid #f0f0f0;padding-bottom:6px">'+r.split(' ').slice(-2).join(' ')+'</div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>📌 Prioridad</span><span style="color:#1D4ED8;font-weight:600">'+cp+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>🔥 Foco</span><span style="color:var(--foco-tx);font-weight:600">'+cf+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>🗓️ Programadas</span><span style="color:#16a34a;font-weight:600">'+cp2+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>🟡 Alerta</span><span style="color:var(--amber);font-weight:600">'+ca+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>🔴 Critico</span><span style="color:var(--red);font-weight:600">'+cc2+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span>⚠ Sin tarea</span><span style="color:#DC2626;font-weight:600">'+cx+'</span></div><div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-top:1px solid #f0f0f0;margin-top:4px"><span>Total</span><span style="font-weight:600">'+mis.length+'</span></div></div>';});
   h+='</div><div class="cd" style="padding:0"><div class="ch"><span class="ctl">Listado completo por urgencia</span><div class="fb" style="margin:0"><select id="al-fr" onchange="DB._alFr=this.value;rAlertas()"><option value="">Todos</option>'+RESPONSABLES.map(function(r){return'<option'+(DB._alFr===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select></div></div><table class="tbl"><thead><tr><th>Urgencia</th><th>Caratula</th><th>Proxima tarea</th><th>Prioridad</th><th>Resp.</th><th>↕</th><th></th></tr></thead><tbody>';
   var fra=DB._alFr||'';var alOrden=DB.alOrder||[];
   var lista=todos.slice().sort(function(a,b){
