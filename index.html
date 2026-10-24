@@ -219,6 +219,7 @@ textarea.fc{min-height:80px;resize:vertical}
       <div class="ni" onclick="nav('reportes')">📄 Reportes e impresion</div>
       <div class="ni" id="navLorenzo" onclick="nav('lorenzo')" style="display:none">💙 Lorenzo</div>
       <div class="ni" id="navFinanzas" onclick="nav('finanzas')" style="display:none">💰 Finanzas BMB</div>
+      <div class="ni" id="navRecurrentes" onclick="nav('recurrentes')" style="display:none">🔁 Tareas recurrentes</div>
       <div class="ni" id="navReagendar" onclick="nav('reagendar')" style="display:none">🔄 Reagendar</div>
       <div class="ns">IA</div>
       <div class="ni" onclick="nav('ia')">🤖 Asistente IA</div>
@@ -247,6 +248,7 @@ textarea.fc{min-height:80px;resize:vertical}
 </div>
 <div class="mb" id="mP"><div class="md mdl" id="mPI"></div></div>
 <div class="mb" id="mF"><div class="md mds" id="mFI"></div></div>
+<div class="mb" id="mRec"><div class="md mds" id="mRecI"></div></div>
 <div class="mb" id="mAg"><div class="md mdm" id="mAgI"></div></div>
 <div class="mb" id="mPr"><div class="md mdm" id="mPrI"></div></div>
 <div class="mb" id="mVc"><div class="md mdm" id="mVcI"></div></div>
@@ -360,6 +362,19 @@ function supaUpsert(tabla, filas) {
     return null;
   });
 }
+// Etapa 4.3 — insercion idempotente para apariciones de tareas recurrentes: si el id ya existe, NO LO PISA (a diferencia de supaUpsert).
+// Asi, dos PC generando la misma aparicion al mismo tiempo nunca duplican ni se pisan un cambio ya hecho (marcar hecha, editar, etc.).
+function supaInsertarSiNoExiste(tabla, filas) {
+  if (!filas || !filas.length) return Promise.resolve();
+  return fetch(SUPA_URL + '/rest/v1/' + tabla, {
+    method: 'POST',
+    headers: Object.assign({}, SUPA_HEADERS, { 'Prefer': 'resolution=ignore-duplicates' }),
+    body: JSON.stringify(filas)
+  }).then(function(r) {
+    if (!r.ok) return r.text().then(function(t) { throw new Error(tabla + ': ' + t); });
+    return null;
+  }).catch(function(e){ console.warn('[BMB recurrentes] Error al insertar en', tabla, ':', e.message); });
+}
 
 // ── DELETE ────────────────────────────────────────────────────
 function supaDelete(tabla, id) {
@@ -380,7 +395,8 @@ async function supaCargarTodo() {
       'procesos','agendas','procuraciones','vencimientos',
       'intervinientes','cc:cuenta_corriente','lorenzo','lor_agenda',
       'finanzas','usuarios','turnos',
-      'finObligaciones:fin_obligaciones','finCuotas:fin_cuotas','finMovimientos:fin_movimientos'
+      'finObligaciones:fin_obligaciones','finCuotas:fin_cuotas','finMovimientos:fin_movimientos',
+      'recurrentes','feriados'
     ];
     var resultados = await Promise.all(tablas.map(function(t) {
       var partes = t.split(':');
@@ -539,7 +555,7 @@ async function _ejecutarSync() {
         .map(function(a) { return {
           id:a.id, pid:a.pid||null, resp:a.resp||null, f:a.f||null,
           ho:a.ho||null, co:a.co||null, nota:a.nota||null,
-          he:!!a.he, fReal:a.fReal||null, conf:!!a.conf, duracion:a.duracion||null
+          he:!!a.he, fReal:a.fReal||null, conf:!!a.conf, duracion:a.duracion||null, recur_id:a.recur_id||null
         }; });
       await _ut('agendas', ags);
     }
@@ -563,7 +579,7 @@ async function _ejecutarSync() {
         .filter(function(v){ return !_vcIds||_vcIds[v.id]; })
         .map(function(v) { return {
           id:v.id, pid:v.pid||null, f:v.f||null, ho:v.ho||null,
-          ac:v.ac||null, re2:v.re2||null, ca2:!!v.ca2, r:!!v.r, conf2:!!v.conf2, cancelada:!!v.cancelada
+          ac:v.ac||null, re2:v.re2||null, ca2:!!v.ca2, r:!!v.r, conf2:!!v.conf2, cancelada:!!v.cancelada, recur_id:v.recur_id||null
         }; });
       await _ut('vencimientos', vcs);
     }
@@ -726,7 +742,7 @@ var INSTANCIAS=['SRT (Superintendencia de Riesgos del Trabajo)','Ministerio de T
 var JUZGADOS_BASE=['Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 3 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 4 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 5 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 6 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 7 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 8 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 9 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 10 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 11 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 12 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 13 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 14 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 15 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 16 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 17 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 18 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 19 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 20 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 21 - Rosario','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 22 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 1 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 2 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 3 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 4 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 5 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 6 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 7 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 8 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 9 - Rosario','Juzgado Unipersonal de Responsabilidad Extracontractual N° 10 - Rosario','Juzgado Unipersonal de Familia N° 1 - Rosario','Juzgado Unipersonal de Familia N° 2 - Rosario','Juzgado Unipersonal de Familia N° 3 - Rosario','Juzgado Unipersonal de Familia N° 4 - Rosario','Juzgado Unipersonal de Familia N° 5 - Rosario','Juzgado Unipersonal de Familia N° 6 - Rosario','Juzgado Unipersonal de Familia N° 7 - Rosario','Juzgado Unipersonal de Familia N° 8 - Rosario','Juzgado Unipersonal de Familia N° 9 - Rosario','Juzgado Unipersonal de Familia N° 10 - Rosario','Juzgado Unipersonal de Familia N° 11 - Rosario','Juzgado Unipersonal de Familia N° 12 - Rosario','Juzgado de Primera Instancia de Distrito en Ejecucion Civil N° 1 - Rosario','Juzgado de Primera Instancia de Distrito en Ejecucion Civil N° 2 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 1 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 2 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 3 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 4 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 5 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 6 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 7 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 8 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 9 - Rosario','Juzgado de Primera Instancia en lo Laboral N° 10 - Rosario','Camara de Apelaciones en lo Laboral Sala I - Rosario','Camara de Apelaciones en lo Laboral Sala II - Rosario','Camara de Apelaciones en lo Laboral Sala III - Rosario','Camara de Apelacion en lo Contencioso Administrativo - Rosario','Camara de Apelacion en lo Penal Sala I - Rosario','Camara de Apelacion en lo Penal Sala II - Rosario','Camara de Apelacion en lo Penal Sala III - Rosario','Camara de Apelacion en lo Penal Sala IV - Rosario','Camara de Apelacion de Ejecucion Penal y Supervision Carcelaria - Rosario','Juzgado de Primera Instancia de Circuito de Arroyo Seco','Juzgado de Primera Instancia de Circuito de Villa Gobernador Galvez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 1 - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 2 - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 3 - Canada de Gomez','Juzgado de Primera Instancia de Familia - Canada de Gomez','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 1 - Casilda','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 2 - Casilda','Juzgado de Primera Instancia de Distrito CyC y Laboral N° 3 - Casilda','Juzgado de Primera Instancia de Familia - Casilda','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - San Lorenzo','Juzgado de Primera Instancia de Familia - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Laboral - San Lorenzo','Juzgado de Primera Instancia de Circuito - San Lorenzo','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 1 - Villa Constitucion','Juzgado de Primera Instancia de Distrito en lo Civil y Comercial N° 2 - Villa Constitucion','Juzgado de Primera Instancia de Familia - Villa Constitucion','Oficina de Procesos Sucesorios - Rosario','SRT - Rosario','Ministerio de Trabajo - Rosario','Tribunal en lo Laboral N° 2 - San Nicolas','Tribunal en lo Laboral N° 3 - San Nicolas','Asesoria de Menores N° 1 - Rosario','Extrajudicial'];
 var LOR_CATS=['Turno medico','Fonoaudiologia','Psicopedagogia','Psicologia','Gimnasia','Escuela','Cumpleanos','Evento especial','Otro'];
 var TP_BASE=['Accidente de Trabajo LRT','Enfermedad Laboral LRT','Laboral - Cobro de Pesos','Laboral - Despido','Sucesion','Danos y Perjuicios','Derecho Inmobiliario - Locacion','Derecho Inmobiliario - Usucapion','Cobro de Pesos','Defensa del Consumidor','SRT','Ministerio de Trabajo','Extrajudicial','Ejecutivo','Divorcio','Alimentos','Propia quiebra','Cuidado personal','Venia','Otro'];
-var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],reagendSnap:[],turnos:[],finObligaciones:[],finCuotas:[],finMovimientos:[],juzgados:JUZGADOS_BASE.slice(),tp:TP_BASE.slice(),usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
+var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],reagendSnap:[],turnos:[],finObligaciones:[],finCuotas:[],finMovimientos:[],recurrentes:[],feriados:[],juzgados:JUZGADOS_BASE.slice(),tp:TP_BASE.slice(),usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
 var CU=null,CS='dash',_histNav=[],_listadoFiltrado=[],_qFiltro='',_alertaCriticaMostrada=false,_alertaCuotaMostrada=false,_alertaFocosMostrada=false,_alertaVencSinMarcarMostrada=false;
 var fR2='',fT2='',fB2='',fP2='',fI2='';
 function sv(){
@@ -779,9 +795,9 @@ function diasEntreFechas(f1,f2){var a=f1.split('-'),b=f2.split('-');return Math.
 // Orden por defecto de listados con fecha: hoy primero, luego futuro (mas proxima primero), vencido al final (mas reciente primero).
 function ordenPorFecha(fa,fb){var h=hoy();var va=fa<h,vb=fb<h;if(va!==vb)return va?1:-1;return va?fb.localeCompare(fa):fa.localeCompare(fb);}
 // ===================== ETAPA 3.1 — DURACION DE TAREAS Y DIAS HABILES =====================
-// Feriados nacionales/de Santa Fe conocidos. Agregar aqui nuevas fechas "AAAA-MM-DD" cuando se confirmen.
-var FERIADOS=['2026-11-09','2026-11-23'];
-function esFeriado(f){return FERIADOS.indexOf(f)>=0;}
+// Feriados: la fuente real es la tabla editable DB.feriados (Supabase), no una lista fija en el codigo.
+// Solo cuentan como no habiles los marcados confirmado=true (ver pantalla Feriados).
+function esFeriado(f){return (DB.feriados||[]).some(function(x){return x.fecha===f&&x.confirmado;});}
 function esDiaHabil(f){var p=f.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]);var dow=d.getDay();return dow!==0&&dow!==6&&!esFeriado(f);}
 // Devuelve las n fechas habiles a partir de f (incluida si es habil), saltando sabados, domingos y feriados.
 function fechasHabilesDesde(f,n){var res=[];var actual=f;while(res.length<n){if(esDiaHabil(actual))res.push(actual);actual=sumarDiasStr(actual,1);}return res;}
@@ -799,6 +815,128 @@ function agendaExpandida(){
     });
   });
   return out;
+}
+// ===================== ETAPA 4.3 — TAREAS RECURRENTES =====================
+var HORIZONTE_RECURRENTES_DIAS=35;
+function sumarMesesStr(aaaa_mm,n){var p=aaaa_mm.split('-');var anio=+p[0],mes=+p[1]+n;while(mes>12){mes-=12;anio++;}while(mes<1){mes+=12;anio--;}return anio+'-'+String(mes).padStart(2,'0');}
+// Siguiente fecha NOMINAL a generar para una definicion, a partir de su generado_hasta (o fecha_inicio si nunca genero nada).
+function siguienteNominal(def){
+  if(!def.generado_hasta)return def.fecha_inicio;
+  if(def.patron==='semanal')return sumarDiasStr(def.generado_hasta,1);
+  // mensual: el dia_mes del mes siguiente al de generado_hasta (fecha nominal, sin corrimiento de dia habil)
+  var am=sumarMesesStr(def.generado_hasta.substring(0,7),1);
+  return am+'-'+String(def.dia_mes).padStart(2,'0');
+}
+// Fechas NOMINALES que corresponden a una definicion entre desde y hasta (ambas inclusive).
+function calcularApariciones(def,desde,hasta){
+  var out=[];
+  if(desde>hasta)return out;
+  if(def.patron==='semanal'){
+    var f=desde;
+    while(f<=hasta){
+      var p=f.split('-');var dow=new Date(+p[0],+p[1]-1,+p[2]).getDay();
+      if(dow===def.dia_semana)out.push(f);
+      f=sumarDiasStr(f,1);
+    }
+  }else if(def.patron==='mensual'){
+    var am=desde.substring(0,7);
+    while(true){
+      var fNominal=am+'-'+String(def.dia_mes).padStart(2,'0');
+      if(fNominal>hasta)break;
+      if(fNominal>=desde)out.push(fNominal);
+      am=sumarMesesStr(am,1);
+    }
+  }
+  return out;
+}
+// Genera (si corresponde) las apariciones pendientes de todas las definiciones activas, hasta el horizonte.
+// No pisa nada existente (insercion ignore-duplicates) y generado_hasta solo avanza, despues de insertar.
+function generarRecurrentes(){
+  if(!DB.recurrentes||!DB.recurrentes.length)return;
+  var hoyS=hoy();
+  var limite=sumarDiasStr(hoyS,HORIZONTE_RECURRENTES_DIAS);
+  DB.recurrentes.forEach(function(def){
+    if(!def.activo)return;
+    var desde=siguienteNominal(def);
+    var hastaReal=(def.fecha_fin&&def.fecha_fin<limite)?def.fecha_fin:limite;
+    var fechas=calcularApariciones(def,desde,hastaReal);
+    if(!fechas.length)return;
+    var filasNuevas=[];
+    fechas.forEach(function(f){
+      var id='rec-'+def.id+'-'+f;
+      var yaExiste=(def.tipo==='agenda')
+        ? DB.agendas.some(function(a){return a.id===id||(a.recur_id===def.id&&a.f===f);})
+        : DB.vencimientos.some(function(v){return v.id===id||(v.recur_id===def.id&&v.f===f);});
+      if(yaExiste)return;
+      if(def.tipo==='agenda'){
+        var fila={id:id,pid:def.pid||null,resp:def.resp||null,f:f,ho:def.ho||null,co:def.texto||'',nota:null,he:false,fReal:null,conf:false,duracion:1,recur_id:def.id};
+        DB.agendas.push(fila);filasNuevas.push(fila);
+      }else{
+        var filaV={id:id,pid:def.pid||null,f:f,ho:def.ho||null,ac:def.texto||'',re2:def.resp||null,ca2:false,r:false,conf2:false,cancelada:false,recur_id:def.id};
+        DB.vencimientos.push(filaV);filasNuevas.push(filaV);
+      }
+    });
+    if(filasNuevas.length)supaInsertarSiNoExiste(def.tipo==='agenda'?'agendas':'vencimientos',filasNuevas);
+    var nuevoHasta=fechas[fechas.length-1];
+    if(!def.generado_hasta||nuevoHasta>def.generado_hasta){
+      def.generado_hasta=nuevoHasta;
+      guardarRecurrente(def);
+    }
+  });
+}
+// Guarda (crea o actualiza) una definicion de tarea recurrente. Nunca toca las apariciones ya generadas.
+var DIAS_SEMANA=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+function rRecurrentes(){
+  var h='<div class="cd" style="margin-bottom:1rem"><div style="padding:1rem 1.25rem;font-size:12px;color:var(--muted);line-height:1.6">Tareas que se generan solas, sin tener que cargarlas a mano cada vez. El sistema genera las apariciones hasta '+HORIZONTE_RECURRENTES_DIAS+' dias hacia adelante. Pausar o terminar una recurrencia no borra ni modifica las apariciones ya generadas.</div></div>';
+  h+='<div class="fb"><button class="btn bp bsm" onclick="oRecurrenteNueva()">+ Nueva recurrencia</button></div>';
+  var l=(DB.recurrentes||[]).slice().sort(function(a,b){return(a.texto||'').localeCompare(b.texto||'');});
+  if(!l.length){h+='<div class="cd"><div style="padding:2rem;text-align:center;color:var(--muted)">Sin tareas recurrentes todavia.</div></div>';document.getElementById('MC').innerHTML=h;return;}
+  h+='<div class="cd" style="padding:0"><table class="tbl"><thead><tr><th>Texto</th><th>Tipo</th><th>Patron</th><th>Responsable</th><th>Generado hasta</th><th>Estado</th><th></th></tr></thead><tbody>';
+  l.forEach(function(def){
+    var p=def.pid?DB.procesos.find(function(x){return x.id===def.pid;}):null;
+    var patronTxt=def.patron==='semanal'?('Semanal · '+(DIAS_SEMANA[def.dia_semana]||'?')):('Mensual · dia '+def.dia_mes);
+    var terminada=def.fecha_fin&&def.fecha_fin<=hoy();
+    var estado=terminada?'<span style="color:var(--muted)">Terminada ('+fF(def.fecha_fin)+')</span>':(def.activo?'<span style="color:var(--green);font-weight:600">Activa</span>':'<span style="color:var(--amber);font-weight:600">Pausada</span>');
+    h+='<tr><td>'+esc(def.texto||'-')+(p?'<div style="font-size:11px;color:var(--muted)">'+esc(p.ca.substr(0,40))+'</div>':'')+'</td><td style="font-size:12px">'+(def.tipo==='agenda'?'Tarea':'Vencimiento')+'</td><td style="font-size:12px">'+patronTxt+'</td><td style="font-size:12px">'+(def.resp?def.resp.split(' ').pop():'-')+'</td><td style="font-size:12px">'+(def.generado_hasta?fF(def.generado_hasta):'-')+'</td><td>'+estado+'</td><td style="white-space:nowrap">'+(terminada?'':(def.activo?'<button class="btn bs bsm" onclick="pausarRecurrente(\''+def.id+'\')">Pausar</button>':'<button class="btn bs bsm" onclick="reactivarRecurrente(\''+def.id+'\')">Reactivar</button>')+' <button class="btn bd bsm" onclick="terminarRecurrente(\''+def.id+'\')">Terminar</button>')+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  document.getElementById('MC').innerHTML=h;
+}
+function oRecurrenteNueva(){
+  var h='<div class="mh"><div class="mt2">Nueva tarea recurrente</div><button class="bi" onclick="cM(\'mRec\')">✕</button></div>';
+  h+='<div class="fr"><div class="fg"><label class="fl req">Tipo</label><select class="fc" id="rec-tipo"><option value="agenda">Tarea (agenda)</option><option value="vencimiento">Vencimiento</option></select></div><div class="fg"><label class="fl req">Patron</label><select class="fc" id="rec-patron" onchange="_toggleRecPatron()"><option value="semanal">Semanal</option><option value="mensual">Mensual</option></select></div></div>';
+  h+='<div class="fr"><div class="fg" id="rec-dia-semana-zone"><label class="fl req">Dia de la semana</label><select class="fc" id="rec-dia-semana">'+DIAS_SEMANA.map(function(d,i){return'<option value="'+i+'"'+(i===6?' selected':'')+'>'+d+'</option>';}).join('')+'</select></div><div class="fg hidden" id="rec-dia-mes-zone"><label class="fl req">Dia del mes</label><input type="number" class="fc" id="rec-dia-mes" min="1" max="28" value="1"></div><div class="fg"><label class="fl">Hora (opcional)</label><input type="time" class="fc" id="rec-ho"></div></div>';
+  h+='<div class="fg"><label class="fl">Expediente (opcional)</label><select class="fc" id="rec-proc"><option value="">Sin expediente</option>'+DB.procesos.filter(function(p){return!p.ar&&!p.eliminada;}).sort(function(a,b){return a.ca.localeCompare(b.ca);}).map(function(p){return'<option value="'+p.id+'">'+p.ca.substr(0,55)+'</option>';}).join('')+'</select></div>';
+  h+='<div class="fg"><label class="fl">Responsable</label><select class="fc" id="rec-resp">'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div>';
+  h+='<div class="fg"><label class="fl req">Texto</label><textarea class="fc" id="rec-texto" rows="2"></textarea></div>';
+  h+='<div class="fr"><div class="fg"><label class="fl req">Fecha de inicio</label><input type="date" class="fc" id="rec-finicio" value="'+hoy()+'"></div><div class="fg"><label class="fl">Fecha de fin (opcional)</label><input type="date" class="fc" id="rec-ffin"></div></div>';
+  h+='<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mRec\')">Cancelar</button><button class="btn bp" onclick="gRecurrenteNueva()">Guardar</button></div>';
+  document.getElementById('mRecI').innerHTML=h;document.getElementById('mRec').classList.add('open');
+}
+function _toggleRecPatron(){var sem=v('rec-patron')==='semanal';document.getElementById('rec-dia-semana-zone').classList.toggle('hidden',!sem);document.getElementById('rec-dia-mes-zone').classList.toggle('hidden',sem);}
+function gRecurrenteNueva(){
+  var texto=document.getElementById('rec-texto').value.trim();if(!texto){alert('El texto es obligatorio');return;}
+  var finicio=v('rec-finicio');if(!finicio){alert('La fecha de inicio es obligatoria');return;}
+  var patron=v('rec-patron');
+  var def={
+    id:'rec_'+uid(), tipo:v('rec-tipo'), pid:v('rec-proc')||null, patron:patron,
+    dia_semana:patron==='semanal'?parseInt(v('rec-dia-semana')):null,
+    dia_mes:patron==='mensual'?parseInt(v('rec-dia-mes')):null,
+    resp:v('rec-resp'), texto:texto, ho:v('rec-ho')||null,
+    fecha_inicio:finicio, fecha_fin:v('rec-ffin')||null, generado_hasta:null,
+    activo:true, creado_por:CU?CU.nombre:null
+  };
+  guardarRecurrente(def);
+  generarRecurrentes();
+  cM('mRec');rRecurrentes();mostrarBanner();actualizarBadge();
+}
+function pausarRecurrente(id){var def=DB.recurrentes.find(function(x){return x.id===id;});if(!def)return;if(!confirm('¿Pausar esta tarea recurrente? No se van a generar mas apariciones hasta que la reactive. Las ya generadas no se tocan.'))return;def.activo=false;guardarRecurrente(def);rRecurrentes();}
+function reactivarRecurrente(id){var def=DB.recurrentes.find(function(x){return x.id===id;});if(!def)return;def.activo=true;guardarRecurrente(def);generarRecurrentes();rRecurrentes();}
+function terminarRecurrente(id){var def=DB.recurrentes.find(function(x){return x.id===id;});if(!def)return;if(!confirm('¿Terminar esta tarea recurrente definitivamente? No se van a generar mas apariciones nunca mas. Las ya generadas no se tocan ni se borran.'))return;def.fecha_fin=hoy();def.activo=false;guardarRecurrente(def);rRecurrentes();}
+function guardarRecurrente(def){
+  var i=DB.recurrentes.findIndex(function(x){return x.id===def.id;});
+  if(i>=0)DB.recurrentes[i]=def;else DB.recurrentes.push(def);
+  return supaUpsert('recurrentes',[{id:def.id,tipo:def.tipo,pid:def.pid||null,patron:def.patron,dia_semana:(def.dia_semana===undefined?null:def.dia_semana),dia_mes:(def.dia_mes===undefined?null:def.dia_mes),resp:def.resp||null,texto:def.texto||null,ho:def.ho||null,fecha_inicio:def.fecha_inicio,fecha_fin:def.fecha_fin||null,generado_hasta:def.generado_hasta||null,activo:!!def.activo,creado_por:def.creado_por||null}]);
 }
 // ===================== ETAPA 3.2/3.3 — TOPE DIARIO POR PROCESOS Y ALERTAS =====================
 // Topes por usuario (configurable). Sin entrada especifica, se usa el default.
@@ -917,7 +1055,7 @@ function login(){
   CU=f;document.getElementById('le').classList.add('hidden');document.getElementById('LP').classList.add('hidden');document.getElementById('AL').classList.remove('hidden');
   document.getElementById('sNombre').textContent=f.nombre;document.getElementById('sRol').textContent=rolLabel(f.rol);
   document.getElementById('TD').textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',year:'numeric',month:'long',day:'numeric',timeZone:'America/Argentina/Buenos_Aires'});
-  if(f.rol==='admin'){var nl=document.getElementById('navLorenzo');if(nl)nl.style.display='flex';var nf=document.getElementById('navFinanzas');if(nf)nf.style.display='flex';var nr=document.getElementById('navReagendar');if(nr)nr.style.display='flex';}
+  if(f.rol==='admin'){var nl=document.getElementById('navLorenzo');if(nl)nl.style.display='flex';var nf=document.getElementById('navFinanzas');if(nf)nf.style.display='flex';var nr=document.getElementById('navReagendar');if(nr)nr.style.display='flex';var nrec=document.getElementById('navRecurrentes');if(nrec)nrec.style.display='flex';}
   var bs=document.getElementById('btnSync');if(bs)bs.style.display='flex';
   pinRestore();actualizarBadge();mostrarBanner();nav('dash');
   setTimeout(function(){if(typeof syncManual==='function')syncManual();},500);
@@ -936,7 +1074,7 @@ function login(){
       else if(CS==='proc'){if(document.getElementById('procLista'))rProcLista();else rProc();}
       else if(CS==='agenda'){if(document.getElementById('ag-lista'))renderAgLista();else rAgenda();}
       else if(CS==='procuracion'){if(document.getElementById('proc-lista'))renderProcLista();else rProcuracion();}
-      else{var fns={dash:rDash,venc:rVenc,interv:rInterv,arch:rArch,papelera:rPapelera,alertas:rAlertas,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
+      else{var fns={dash:rDash,venc:rVenc,interv:rInterv,arch:rArch,papelera:rPapelera,alertas:rAlertas,lorenzo:rLorenzoCurrent,finanzas:rFinanzas,recurrentes:rRecurrentes};if(fns[CS])fns[CS]();}
     });
   },60000);
 }
@@ -945,12 +1083,12 @@ function navAtras(){if(_histNav.length>1){_histNav.pop();var prev=_histNav[_hist
 function nav(s){
   CS=s;_histNav.push(s);if(_histNav.length>20)_histNav=_histNav.slice(-20);
   document.querySelectorAll('.ni').forEach(function(e){e.classList.remove('active');});
-  var ts={dash:'Panel Principal',proc:'Procesos Activos',agenda:'Agenda Global',procuracion:'Procuracion Global',venc:'Audiencias y Vencimientos',interv:'Intervinientes',arch:'Causas Archivadas',papelera:'Papelera',alertas:'Panel de Alertas',reportes:'Reportes e Impresion',lorenzo:'Modulo Lorenzo',finanzas:'Finanzas BMB',reagendar:'Reagendamiento Automatico',turnero:'Turnero de Citas',ia:'Asistente IA',tab:'Tablas',usr:'Usuarios',backup:'Exportar / Importar'};
+  var ts={dash:'Panel Principal',proc:'Procesos Activos',agenda:'Agenda Global',procuracion:'Procuracion Global',venc:'Audiencias y Vencimientos',interv:'Intervinientes',arch:'Causas Archivadas',papelera:'Papelera',alertas:'Panel de Alertas',reportes:'Reportes e Impresion',lorenzo:'Modulo Lorenzo',finanzas:'Finanzas BMB',reagendar:'Reagendamiento Automatico',recurrentes:'Tareas Recurrentes',turnero:'Turnero de Citas',ia:'Asistente IA',tab:'Tablas',usr:'Usuarios',backup:'Exportar / Importar'};
   document.getElementById('TT').textContent=ts[s]||s;
   var nis=document.querySelectorAll('.ni');
   var im={dash:0,proc:1,agenda:2,procuracion:3,venc:4,interv:5,arch:6,alertas:7,reportes:8,ia:9,tab:10,usr:11,backup:12};
   if(im[s]!==undefined&&nis[im[s]])nis[im[s]].classList.add('active');
-  var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,papelera:rPapelera,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzo,finanzas:rFinanzas,reagendar:rReagendar,turnero:rTurnero,ia:rIA,tab:rTab,usr:rUsr,backup:rBackup};
+  var fns={dash:rDash,proc:rProc,agenda:rAgenda,procuracion:rProcuracion,venc:rVenc,interv:rInterv,arch:rArch,papelera:rPapelera,alertas:rAlertas,reportes:rReportes,lorenzo:rLorenzo,finanzas:rFinanzas,reagendar:rReagendar,recurrentes:rRecurrentes,turnero:rTurnero,ia:rIA,tab:rTab,usr:rUsr,backup:rBackup};
   if(fns[s])fns[s]();
   var b=document.getElementById('btnAtras');if(b)b.style.opacity=_histNav.length>1?'1':'0.4';
 }
@@ -1091,6 +1229,7 @@ function syncManual(){
       if(CU){pinRestore();actualizarBadge();mostrarBanner();if(CS==='reportes'){/* preservar preview */}else if(CS==='proc'){if(document.getElementById('procLista'))rProcLista();else rProc();}else if(CS==='agenda'){if(document.getElementById('ag-lista'))renderAgLista();else rAgenda();}else if(CS==='procuracion'){if(document.getElementById('proc-lista'))renderProcLista();else rProcuracion();}else{var fns={dash:rDash,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
         if(!_alertaCriticaMostrada)mostrarAlertaCriticaCheck();
         chequearAlertasCuotasCheck();
+        generarRecurrentes();
         if(!_alertaFocosMostrada){_alertaFocosMostrada=true;chequearFocosSinTarea();}
         if(!_alertaVencSinMarcarMostrada){_alertaVencSinMarcarMostrada=true;chequearVencidosSinMarcar();}
         if(CS==='papelera')rPapelera();}
