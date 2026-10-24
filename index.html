@@ -563,7 +563,7 @@ async function _ejecutarSync() {
         .filter(function(v){ return !_vcIds||_vcIds[v.id]; })
         .map(function(v) { return {
           id:v.id, pid:v.pid||null, f:v.f||null, ho:v.ho||null,
-          ac:v.ac||null, re2:v.re2||null, ca2:!!v.ca2, r:!!v.r, conf2:!!v.conf2
+          ac:v.ac||null, re2:v.re2||null, ca2:!!v.ca2, r:!!v.r, conf2:!!v.conf2, cancelada:!!v.cancelada
         }; });
       await _ut('vencimientos', vcs);
     }
@@ -727,7 +727,7 @@ var JUZGADOS_BASE=['Juzgado de Primera Instancia de Distrito en lo Civil y Comer
 var LOR_CATS=['Turno medico','Fonoaudiologia','Psicopedagogia','Psicologia','Gimnasia','Escuela','Cumpleanos','Evento especial','Otro'];
 var TP_BASE=['Accidente de Trabajo LRT','Enfermedad Laboral LRT','Laboral - Cobro de Pesos','Laboral - Despido','Sucesion','Danos y Perjuicios','Derecho Inmobiliario - Locacion','Derecho Inmobiliario - Usucapion','Cobro de Pesos','Defensa del Consumidor','SRT','Ministerio de Trabajo','Extrajudicial','Ejecutivo','Divorcio','Alimentos','Propia quiebra','Cuidado personal','Venia','Otro'];
 var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],reagendSnap:[],turnos:[],finObligaciones:[],finCuotas:[],finMovimientos:[],juzgados:JUZGADOS_BASE.slice(),tp:TP_BASE.slice(),usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
-var CU=null,CS='dash',_histNav=[],_listadoFiltrado=[],_qFiltro='',_alertaCriticaMostrada=false,_alertaCuotaMostrada=false,_alertaFocosMostrada=false;
+var CU=null,CS='dash',_histNav=[],_listadoFiltrado=[],_qFiltro='',_alertaCriticaMostrada=false,_alertaCuotaMostrada=false,_alertaFocosMostrada=false,_alertaVencSinMarcarMostrada=false;
 var fR2='',fT2='',fB2='',fP2='',fI2='';
 function sv(){
   try{
@@ -819,7 +819,7 @@ function procesosConCargaEnDia(resp,fecha,excluirAgId){
   });
   if(resp==='Dr. Emanuel Banuls'){
     DB.vencimientos.forEach(function(vx){
-      if(vx.f!==fecha||vx.r)return;
+      if(vx.f!==fecha||vx.r||vx.cancelada)return;
       if(!vx.pid||pidEliminado(vx.pid))return;
       set[vx.pid]=true;
     });
@@ -836,7 +836,7 @@ function topeDelDia(resp,fecha){
   if(tareasLargasEnDia(resp,fecha)>=2)return u.dosLargas;
   return u.normal;
 }
-function audienciasBanulsEnDia(fecha){return DB.vencimientos.filter(function(vx){return vx.f===fecha&&!vx.r&&!pidEliminado(vx.pid);});}
+function audienciasBanulsEnDia(fecha){return DB.vencimientos.filter(function(vx){return vx.f===fecha&&!vx.r&&!vx.cancelada&&!pidEliminado(vx.pid);});}
 function proxDiaHabilConLugar(resp,fecha){var f=fecha;for(var i=0;i<365;i++){f=sumarDiasStr(f,1);if(!esDiaHabil(f))continue;if(cargaDelDia(resp,f)<topeDelDia(resp,f))return f;}return null;}
 // Texto de aviso (no bloqueante) con carga del dia y/o audiencia del Dr. Banuls. Devuelve '' si no corresponde ninguna alerta.
 // pid: el proceso de la tarea que se esta cargando o moviendo (si ese proceso ya tenia carga ese dia, no se avisa de tope).
@@ -940,7 +940,7 @@ function login(){
     });
   },60000);
 }
-function logout(){if(CU&&typeof syncManual==='function'&&_localDirty)syncManual();_alertaCriticaMostrada=false;_alertaFocosMostrada=false;_qFiltro='';CU=null;_histNav=[];var bs2=document.getElementById('btnSync');if(bs2)bs2.style.display='none';clearInterval(window._autoSyncInt);window._autoSyncInt=null;document.getElementById('LP').classList.remove('hidden');document.getElementById('AL').classList.add('hidden');document.getElementById('lu').value='';document.getElementById('lp2').value='';document.getElementById('bannerZone').innerHTML='';}
+function logout(){if(CU&&typeof syncManual==='function'&&_localDirty)syncManual();_alertaCriticaMostrada=false;_alertaFocosMostrada=false;_alertaVencSinMarcarMostrada=false;_qFiltro='';CU=null;_histNav=[];var bs2=document.getElementById('btnSync');if(bs2)bs2.style.display='none';clearInterval(window._autoSyncInt);window._autoSyncInt=null;document.getElementById('LP').classList.remove('hidden');document.getElementById('AL').classList.add('hidden');document.getElementById('lu').value='';document.getElementById('lp2').value='';document.getElementById('bannerZone').innerHTML='';}
 function navAtras(){if(_histNav.length>1){_histNav.pop();var prev=_histNav[_histNav.length-1];_histNav.pop();nav(prev);}}
 function nav(s){
   CS=s;_histNav.push(s);if(_histNav.length>20)_histNav=_histNav.slice(-20);
@@ -961,7 +961,7 @@ function mostrarBanner(){
   var bz=document.getElementById('bannerZone');if(!bz)return;
   if(cr.length||sx.length){var msg=[];if(cr.length)msg.push(cr.length+' causa'+(cr.length>1?'s':'')+' CON URGENCIA CRITICA');if(sx.length)msg.push(sx.length+' SIN PROXIMA TAREA');bz.innerHTML='<div class="banner rojo">'+msg.join(' · ')+' <button onclick="nav(\'alertas\')">Ver</button></div>';return;}
   var h0=hoy();var l7=sumarDiasStr(h0,7);
-  var vp=DB.vencimientos.filter(function(vx){if(vx.r)return false;if(pidEliminado(vx.pid))return false;return vx.f>=h0&&vx.f<=l7;});
+  var vp=DB.vencimientos.filter(function(vx){if(vx.r||vx.cancelada)return false;if(pidEliminado(vx.pid))return false;return vx.f>=h0&&vx.f<=l7;});
   if(vp.length){bz.innerHTML='<div class="banner ambar">'+vp.length+' vencimiento'+(vp.length>1?'s':'')+' en 7 dias <button onclick="nav(\'venc\')">Ver</button></div>';return;}
   bz.innerHTML='';
 }
@@ -980,7 +980,7 @@ function rDash(){
   // Para usuarios no-admin: urgencia crítica y sin próxima tarea solo muestran sus propias causas
   if(CU.rol!=='admin'){var _miNombre=CU.nombre;cr=cr.filter(function(p){return p.re===_miNombre;});sinPA=sinPA.filter(function(p){return p.re===_miNombre;});}
   var hA=hoy();var l45=sumarDiasStr(hA,45);
-  var auds=DB.vencimientos.filter(function(vx){if(vx.r)return false;if(pidEliminado(vx.pid))return false;return vx.f>=hA&&vx.f<=l45;}).sort(function(a,b){return a.f.localeCompare(b.f);});
+  var auds=DB.vencimientos.filter(function(vx){if(vx.r||vx.cancelada)return false;if(pidEliminado(vx.pid))return false;return vx.f>=hA&&vx.f<=l45;}).sort(function(a,b){return a.f.localeCompare(b.f);});
   var lorProx=DB.lorAgenda.filter(function(a){return!a.he&&a.f>=hoy();}).sort(function(a,b){return a.f.localeCompare(b.f);}).slice(0,5);
   var h='<div class="sg sg6" style="margin-bottom:1.25rem">';
   h+='<div class="sc pin" style="cursor:pointer" onclick="navConFiltro(\'pin\')" title="Ver causas con prioridad activa"><div class="sn">'+pinned.length+'</div><div class="sl">Prioridad activa</div></div>';
@@ -1092,6 +1092,7 @@ function syncManual(){
         if(!_alertaCriticaMostrada)mostrarAlertaCriticaCheck();
         chequearAlertasCuotasCheck();
         if(!_alertaFocosMostrada){_alertaFocosMostrada=true;chequearFocosSinTarea();}
+        if(!_alertaVencSinMarcarMostrada){_alertaVencSinMarcarMostrada=true;chequearVencidosSinMarcar();}
         if(CS==='papelera')rPapelera();}
     });
   }
@@ -1430,22 +1431,59 @@ function revertirProcG(id){if(!confirm('Revertir a estado PENDIENTE?'))return;va
 function oProcGlobal(){var h='<div class="mh"><div class="mt2">Nueva gestion de procuracion</div><button class="bi" onclick="cM(\'mPr2\')">✕</button></div><div class="fg"><label class="fl">Expediente</label><select class="fc" id="pr-proc"><option value="">Sin expediente</option>'+DB.procesos.filter(function(p){return!p.ar&&!p.eliminada;}).sort(function(a,b){return a.ca.localeCompare(b.ca);}).map(function(p){return'<option value="'+p.id+'">'+p.ca.substr(0,55)+'</option>';}).join('')+'</select></div><div class="fr"><div class="fg"><label class="fl req">Fecha</label><input type="date" class="fc" id="pr-f" value="'+hoy()+'"></div><div class="fg"><label class="fl">Hora</label><input type="time" class="fc" id="pr-h"></div></div><div class="fg"><label class="fl">Lugar / Organismo</label><input class="fc" id="pr-l"></div><div class="fg"><label class="fl req">Descripcion</label><textarea class="fc" id="pr-c"></textarea></div><div class="fr"><div class="fg"><label class="fl">Responsable</label><select class="fc" id="pr-r">'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select></div><div class="fg"><label class="fl">Fecha limite</label><input type="date" class="fc" id="pr-fl"></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mPr2\')">Cancelar</button><button class="btn bp" onclick="gProcG()">Guardar</button></div>';document.getElementById('mPr2I').innerHTML=h;document.getElementById('mPr2').classList.add('open');}
 function gProcG(){var c=document.getElementById('pr-c').value.trim();if(!c){alert('Descripcion obligatoria');return}DB.procuraciones.push({id:uid(),pid:v('pr-proc'),f:v('pr-f'),ho:v('pr-h'),lugar:document.getElementById('pr-l').value,co:c,re2:v('pr-r'),fLim:v('pr-fl'),realizada:false});sv();cM('mPr2');rProcuracion();}
 function rVenc(){
-  var h='<div class="fb"><select id="vcf-s" onchange="rVenc()"><option value="">Todos</option><option value="pend">Pendientes</option><option value="conf">Confirmadas</option><option value="prox">Proximos 7 dias</option><option value="prox45">Proximos 45 dias</option></select>';
+  var h='<div class="fb"><select id="vcf-s" onchange="rVenc()"><option value="">Todos</option><option value="pend">Pendientes</option><option value="conf">Confirmadas</option><option value="prox">Proximos 7 dias</option><option value="prox45">Proximos 45 dias</option><option value="vencsinmarcar">⚠ Vencidos sin marcar (mios)</option><option value="cancel">Canceladas</option></select>';
   h+='<select id="vcf-r" onchange="rVenc()"><option value="">Todos los responsables</option>'+RESPONSABLES.map(function(r){return'<option>'+r+'</option>';}).join('')+'</select>';
   h+='<input type="date" id="vcf-d1" onchange="rVenc()" title="Desde"><input type="date" id="vcf-d2" onchange="rVenc()" title="Hasta"><button class="btn bp bsm" onclick="oVGlobal()">+ Nueva</button><button class="btn bs bsm" onclick="imprimirVencimientosGlobal()">🖨️ Generar PDF</button></div>';
   var fs=v('vcf-s'),fr=v('vcf-r'),fd1=v('vcf-d1'),fd2=v('vcf-d2');
   var l=DB.vencimientos.slice().filter(function(vx){return!pidEliminado(vx.pid);}).sort(function(a,b){if(!a.r&&b.r)return-1;if(a.r&&!b.r)return 1;return a.f.localeCompare(b.f);});
-  if(fs==='pend')l=l.filter(function(vx){return!vx.r;});
-  if(fs==='conf')l=l.filter(function(vx){return vx.conf2&&!vx.r;});
-  if(fs==='prox'){var _h1=hoy();var lm7=sumarDiasStr(_h1,7);l=l.filter(function(vx){if(vx.r)return false;return vx.f>=_h1&&vx.f<=lm7;});}
-  if(fs==='prox45'){var _h2=hoy();var lm45=sumarDiasStr(_h2,45);l=l.filter(function(vx){if(vx.r)return false;return vx.f>=_h2&&vx.f<=lm45;});}
+  if(fs==='pend')l=l.filter(function(vx){return!vx.r&&!vx.cancelada;});
+  if(fs==='conf')l=l.filter(function(vx){return vx.conf2&&!vx.r&&!vx.cancelada;});
+  if(fs==='prox'){var _h1=hoy();var lm7=sumarDiasStr(_h1,7);l=l.filter(function(vx){if(vx.r||vx.cancelada)return false;return vx.f>=_h1&&vx.f<=lm7;});}
+  if(fs==='prox45'){var _h2=hoy();var lm45=sumarDiasStr(_h2,45);l=l.filter(function(vx){if(vx.r||vx.cancelada)return false;return vx.f>=_h2&&vx.f<=lm45;});}
+  if(fs==='cancel')l=l.filter(function(vx){return!!vx.cancelada;});
+  if(fs==='vencsinmarcar'){
+    var hS=hoy();
+    l=l.filter(function(vx){return vx.re2===CU.nombre&&vx.f<hS&&!vx.r&&!vx.cancelada;});
+    _vencFiltrado=l.slice();_vencFiltros={resp:CU.nombre,d1:'',d2:''};
+    h+='<div class="cd" style="margin-bottom:1rem"><div style="padding:1rem 1.25rem;font-size:12px;color:var(--muted);line-height:1.7">Vencimientos y audiencias con fecha anterior a hoy, a tu nombre (campo <strong>responsable de la tarea</strong>, que puede ser distinto del responsable de la causa), que todavia no se marcaron de ninguna forma.<br><strong>Realizada:</strong> ya se llevo a cabo o se cumplio.<br><strong>Cancelada:</strong> no va a suceder; se puede deshacer en cualquier momento.<br><strong>Confirmada:</strong> se confirmo con el juzgado o la contraparte que va a suceder (no cambia si esta vencida o no).<br><strong>Preparada:</strong> alguien ya se preparo para ella (campo historico, no indica si esta vencida).</div></div>';
+    if(!l.length){h+='<div class="cd"><div style="padding:2.5rem;text-align:center;color:var(--muted)">✓ No tenes vencimientos sin marcar.</div></div>';document.getElementById('MC').innerHTML=h;return;}
+    h+='<div class="cd" style="padding:0"><table class="tbl"><thead><tr><th>Fecha</th><th>Hora</th><th>Causa</th><th>Resp. de la causa</th><th>Detalle</th><th>Estado</th><th></th></tr></thead><tbody>';
+    l.forEach(function(vx){
+      var p=DB.procesos.find(function(x){return x.id===vx.pid;});
+      var estados=[];
+      if(vx.conf2)estados.push('<span class="vc-conf">✓ Confirmada</span>');
+      if(vx.ca2)estados.push('<span class="vc-prep">Preparada</span>');
+      if(!estados.length)estados.push('<span style="color:var(--red);font-size:11px;font-weight:700">Sin marcar</span>');
+      h+='<tr><td style="white-space:nowrap">'+fF(vx.f)+'</td><td>'+(vx.ho&&vx.ho!=='00:00'?vx.ho:'-')+'</td><td>'+(p?'<span class="tl" onclick="aP(\''+p.id+'\')">'+esc(p.ca.substr(0,40))+'</span>':'-')+'</td><td style="font-size:12px">'+(p&&p.re?p.re.split(' ').pop():'-')+'</td><td style="font-size:12px;max-width:260px">'+esc((vx.ac||'-').substr(0,120))+'</td><td>'+estados.join(' ')+'</td><td style="white-space:nowrap"><button class="btn bs bsm" onclick="mVRG(\''+vx.id+'\')">✓ Realizada</button> <button class="btn bd bsm" onclick="marcarCanceladaVc(\''+vx.id+'\')">Cancelar</button> <button class="btn bs bsm" onclick="editarVcModal(\''+vx.id+'\',null)">Reagendar</button></td></tr>';
+    });
+    h+='</tbody></table></div>';
+    document.getElementById('MC').innerHTML=h;
+    return;
+  }
   if(fr)l=l.filter(function(vx){return vx.re2===fr;});
   if(fd1)l=l.filter(function(vx){return vx.f>=fd1;});if(fd2)l=l.filter(function(vx){return vx.f<=fd2;});
   _vencFiltrado=l.slice();_vencFiltros={resp:fr,d1:fd1,d2:fd2};
   if(!l.length){h+='<div class="cd"><div style="padding:2rem;text-align:center;color:var(--muted)">Sin vencimientos</div></div>';document.getElementById('MC').innerHTML=h;return;}
   h+='<div style="display:flex;flex-direction:column;gap:8px">';
-  l.forEach(function(vx){var p=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var bd=df<0?'<span class="iu ic">VENCIDO</span>':df<=VENC_CRIT?'<span class="iu ic">'+df+'d</span>':df<=VENC_AL?'<span class="iu ia">'+df+'d</span>':'<span class="iu io">'+df+'d</span>';h+='<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 14px"><div style="display:flex;align-items:flex-start;gap:12px"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'+bd+(vx.ca2?'<span class="vc-prep">PREP</span>':'')+(vx.conf2?'<span class="vc-conf">✓ CONF</span>':'')+(vx.r?'<span style="color:var(--green);font-size:11px;font-weight:500">✓ Realizado</span>':'')+'</div><div style="font-size:14px;font-weight:700">'+(vx.ac||'-')+'</div><div style="font-size:12px;color:var(--muted);margin-top:2px">'+fF(vx.f)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho:'')+(vx.re2?' · '+vx.re2.split(' ').pop():'')+'</div>'+(p?'<div style="font-size:12px;color:var(--navy);margin-top:2px;font-weight:600;cursor:pointer" onclick="aP(\''+p.id+'\')">'+p.ca.substr(0,55)+'</div>':'')+'<div style="display:flex;align-items:center;gap:6px;margin-top:6px"><label style="font-size:11px;color:var(--muted)">Modificar fecha:</label><input type="date" id="gvf-'+vx.id+'" value="'+(vx.f||'')+'" style="border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px"><button class="btn bs bsm" onclick="guardarFechaVcG(\''+vx.id+'\')">Guardar</button></div></div><div style="display:flex;flex-direction:column;gap:4px">'+(!vx.r?'<button class="btn bs bsm" onclick="mVRG(\''+vx.id+'\')">✓ Realizado</button>':'')+'<button class="btn '+(vx.conf2?'bd':'bs')+' bsm" onclick="toggleConfG(\''+vx.id+'\')">'+( vx.conf2?'Desconf.':'📌 Confirmar')+'</button><button class="btn bs bsm" onclick="editarVcModal(\''+vx.id+'\',null)">✏️ Editar</button><button class="bi" onclick="elimVcConf(\''+vx.id+'\')" title="Eliminar">🗑️</button></div></div></div>';});
+  l.forEach(function(vx){var p=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var bd=df<0?'<span class="iu ic">VENCIDO</span>':df<=VENC_CRIT?'<span class="iu ic">'+df+'d</span>':df<=VENC_AL?'<span class="iu ia">'+df+'d</span>':'<span class="iu io">'+df+'d</span>';h+='<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 14px"><div style="display:flex;align-items:flex-start;gap:12px"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'+bd+(vx.cancelada?'<span style="background:#F3F4F6;color:#6B7280;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700">CANCELADA</span>':'')+(vx.ca2?'<span class="vc-prep">PREP</span>':'')+(vx.conf2?'<span class="vc-conf">✓ CONF</span>':'')+(vx.r?'<span style="color:var(--green);font-size:11px;font-weight:500">✓ Realizado</span>':'')+'</div><div style="font-size:14px;font-weight:700">'+(vx.ac||'-')+'</div><div style="font-size:12px;color:var(--muted);margin-top:2px">'+fF(vx.f)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho:'')+(vx.re2?' · '+vx.re2.split(' ').pop():'')+'</div>'+(p?'<div style="font-size:12px;color:var(--navy);margin-top:2px;font-weight:600;cursor:pointer" onclick="aP(\''+p.id+'\')">'+p.ca.substr(0,55)+'</div>':'')+'<div style="display:flex;align-items:center;gap:6px;margin-top:6px"><label style="font-size:11px;color:var(--muted)">Modificar fecha:</label><input type="date" id="gvf-'+vx.id+'" value="'+(vx.f||'')+'" style="border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:11px"><button class="btn bs bsm" onclick="guardarFechaVcG(\''+vx.id+'\')">Guardar</button></div></div><div style="display:flex;flex-direction:column;gap:4px">'+(!vx.r?'<button class="btn bs bsm" onclick="mVRG(\''+vx.id+'\')">✓ Realizado</button>':'')+'<button class="btn '+(vx.conf2?'bd':'bs')+' bsm" onclick="toggleConfG(\''+vx.id+'\')">'+( vx.conf2?'Desconf.':'📌 Confirmar')+'</button>'+(vx.cancelada?'<button class="btn bs bsm" onclick="deshacerCanceladaVc(\''+vx.id+'\')">↩ Descancelar</button>':'<button class="btn bd bsm" onclick="marcarCanceladaVc(\''+vx.id+'\')">Cancelar</button>')+'<button class="btn bs bsm" onclick="editarVcModal(\''+vx.id+'\',null)">✏️ Editar</button><button class="bi" onclick="elimVcConf(\''+vx.id+'\')" title="Eliminar">🗑️</button></div></div></div>';});
   h+='</div>';document.getElementById('MC').innerHTML=h;
+}
+function marcarCanceladaVc(id){
+  var vx=DB.vencimientos.find(function(x){return x.id===id;});if(!vx)return;
+  if(!confirm('¿Marcar esta audiencia/vencimiento como cancelada?\n\n"'+(vx.ac||'-')+'"\n\nSe puede deshacer en cualquier momento.'))return;
+  vx.cancelada=true;sv();rVenc();mostrarBanner();
+}
+function deshacerCanceladaVc(id){
+  var vx=DB.vencimientos.find(function(x){return x.id===id;});if(!vx)return;
+  if(!confirm('¿Deshacer la cancelacion de esta audiencia/vencimiento?\n\n"'+(vx.ac||'-')+'"'))return;
+  vx.cancelada=false;sv();rVenc();mostrarBanner();
+}
+function chequearVencidosSinMarcar(){
+  if(!CU)return;
+  var hS=hoy();
+  var n=DB.vencimientos.filter(function(vx){return vx.re2===CU.nombre&&vx.f<hS&&!vx.r&&!vx.cancelada&&!pidEliminado(vx.pid);}).length;
+  if(!n)return;
+  alert('⏰ Tenes '+n+' vencimiento'+(n!==1?'s':'')+' vencido'+(n!==1?'s':'')+' sin marcar.\n\nVe a Audiencias y vencimientos → "Vencidos sin marcar (mios)" para verlos.');
 }
 var _vencFiltrado=[],_vencFiltros={};
 function imprimirVencimientosGlobal(){
@@ -1562,7 +1600,7 @@ function genPrevProcuracion(pid){
 }
 function genPrevAudiencias(){
   var resp=getRF();var fecF=getFechas();
-  var l=DB.vencimientos.filter(function(vx){if(pidEliminado(vx.pid))return false;if(resp&&vx.re2!==resp)return false;if(fecF.d1&&vx.f<fecF.d1)return false;if(fecF.d2&&vx.f>fecF.d2)return false;if(!vx.r&&!fecF.d1&&!fecF.d2){var _h3=hoy();var lm45=sumarDiasStr(_h3,45);return vx.f>=_h3&&vx.f<=lm45;}return true;}).sort(function(a,b){if(!a.r&&b.r)return-1;if(a.r&&!b.r)return 1;return a.f.localeCompare(b.f);});
+  var l=DB.vencimientos.filter(function(vx){if(pidEliminado(vx.pid))return false;if(resp&&vx.re2!==resp)return false;if(fecF.d1&&vx.f<fecF.d1)return false;if(fecF.d2&&vx.f>fecF.d2)return false;if(!vx.r&&!vx.cancelada&&!fecF.d1&&!fecF.d2){var _h3=hoy();var lm45=sumarDiasStr(_h3,45);return vx.f>=_h3&&vx.f<=lm45;}return true;}).sort(function(a,b){if(!a.r&&b.r)return-1;if(a.r&&!b.r)return 1;return a.f.localeCompare(b.f);});
   if(!l.length){alert('No hay audiencias ni vencimientos para los filtros aplicados.');return;}
   var c='<h2>Audiencias y Vencimientos'+(resp?' — '+resp.split(' ').pop():'')+'</h2>'+_filtrosHtml(resp,fecF)+'<p style="font-size:10px;color:#666;margin-bottom:10px">'+l.length+' audiencia'+(l.length!==1?'s':'')+'</p>';
   l.forEach(function(vx){var p=DB.procesos.find(function(x){return x.id===vx.pid;});var df=dFT(vx.f);var urgBadge=df<0?'<span class="badge-crit">VENCIDO</span>':df<=VENC_CRIT?'<span class="badge-crit">'+df+'d</span>':df<=VENC_AL?'<span class="badge-alert">'+df+'d</span>':'<span class="badge-ok">OK</span>';var txSt=vx.r?'color:#888;':'font-weight:700;';c+='<div class="rep-bloque"><div class="rep-bloque-head" style="'+txSt+'">'+fF(vx.f)+(vx.ho&&vx.ho!=='00:00'?' · '+vx.ho+'h':'')+(vx.re2?' · '+vx.re2.split(' ').pop():'')+(vx.ca2?' · PREPARADA':'')+(vx.conf2?' · ✓ CONFIRMADA':'')+(vx.r?' · ✓ Realizado':'')+'</div>';if(p)c+='<div class="rep-bloque-sub"><strong style="'+txSt+'">'+p.ca+'</strong>'+(p.ex?' · N°: '+p.ex:'')+(p.ju?'<br>'+p.ju:'')+'</div>';c+='<div class="rep-bloque-body" style="display:flex;justify-content:space-between;align-items:center">'+urgBadge+' <span style="'+txSt+'">'+(vx.ac||'-')+'</span>'+(!vx.r?'<button onclick="repMarcarVcRealizada(\''+vx.id+'\')" style="border:1px solid #ddd;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;background:#F0FDF4;color:#166534;font-weight:600">✓ Marcar realizada</button>':'<span style="color:var(--green);font-size:11px">✓ Realizado</span>')+'</div></div>';});
