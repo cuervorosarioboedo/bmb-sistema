@@ -727,7 +727,7 @@ var JUZGADOS_BASE=['Juzgado de Primera Instancia de Distrito en lo Civil y Comer
 var LOR_CATS=['Turno medico','Fonoaudiologia','Psicopedagogia','Psicologia','Gimnasia','Escuela','Cumpleanos','Evento especial','Otro'];
 var TP_BASE=['Accidente de Trabajo LRT','Enfermedad Laboral LRT','Laboral - Cobro de Pesos','Laboral - Despido','Sucesion','Danos y Perjuicios','Derecho Inmobiliario - Locacion','Derecho Inmobiliario - Usucapion','Cobro de Pesos','Defensa del Consumidor','SRT','Ministerio de Trabajo','Extrajudicial','Ejecutivo','Divorcio','Alimentos','Propia quiebra','Cuidado personal','Venia','Otro'];
 var DB={procesos:[],agendas:[],procuraciones:[],intervinientes:[],vencimientos:[],cc:[],lorenzo:[],lorAgenda:[],pinOrder:[],alOrder:[],finanzas:[],reagendSnap:[],turnos:[],finObligaciones:[],finCuotas:[],finMovimientos:[],juzgados:JUZGADOS_BASE.slice(),tp:TP_BASE.slice(),usuarios:JSON.parse(JSON.stringify(USUARIOS_BASE))};
-var CU=null,CS='dash',_histNav=[],_listadoFiltrado=[],_qFiltro='',_alertaCriticaMostrada=false,_alertaCuotaMostrada=false;
+var CU=null,CS='dash',_histNav=[],_listadoFiltrado=[],_qFiltro='',_alertaCriticaMostrada=false,_alertaCuotaMostrada=false,_alertaFocosMostrada=false;
 var fR2='',fT2='',fB2='',fP2='',fI2='';
 function sv(){
   try{
@@ -940,7 +940,7 @@ function login(){
     });
   },60000);
 }
-function logout(){if(CU&&typeof syncManual==='function'&&_localDirty)syncManual();_alertaCriticaMostrada=false;_qFiltro='';CU=null;_histNav=[];var bs2=document.getElementById('btnSync');if(bs2)bs2.style.display='none';clearInterval(window._autoSyncInt);window._autoSyncInt=null;document.getElementById('LP').classList.remove('hidden');document.getElementById('AL').classList.add('hidden');document.getElementById('lu').value='';document.getElementById('lp2').value='';document.getElementById('bannerZone').innerHTML='';}
+function logout(){if(CU&&typeof syncManual==='function'&&_localDirty)syncManual();_alertaCriticaMostrada=false;_alertaFocosMostrada=false;_qFiltro='';CU=null;_histNav=[];var bs2=document.getElementById('btnSync');if(bs2)bs2.style.display='none';clearInterval(window._autoSyncInt);window._autoSyncInt=null;document.getElementById('LP').classList.remove('hidden');document.getElementById('AL').classList.add('hidden');document.getElementById('lu').value='';document.getElementById('lp2').value='';document.getElementById('bannerZone').innerHTML='';}
 function navAtras(){if(_histNav.length>1){_histNav.pop();var prev=_histNav[_histNav.length-1];_histNav.pop();nav(prev);}}
 function nav(s){
   CS=s;_histNav.push(s);if(_histNav.length>20)_histNav=_histNav.slice(-20);
@@ -973,7 +973,7 @@ function actualizarBadge(){
 function rDash(){
   var todos=procVisibles();todos.forEach(function(p){p._i=calcIUO(p);});
   var pinned=todos.filter(function(p){return p.pin;});
-  var focos=todos.filter(function(p){return p.foco&&!p.pin;});
+  var focos=todos.filter(function(p){return p.foco&&p.pin;});
   var prog=todos.filter(function(p){return p._i==='P'&&!p.pin&&!p.foco;});
   var sinPA=todos.filter(function(p){return!tienePA(p)&&!p.pin&&!p.foco;});
   var cr=todos.filter(function(p){return p._i==='C'&&!p.pin&&!p.foco;});
@@ -998,7 +998,7 @@ function rDash(){
     pinnedOrdenados.forEach(function(p){h+='<div class="pin-drag" draggable="true" data-pid="'+p.id+'" style="cursor:grab;border:2px solid #1D4ED8;margin-bottom:10px;padding:10px 14px;border-radius:8px;background:#F8FAFF;display:flex;align-items:flex-start;gap:10px;box-shadow:0 2px 8px rgba(29,78,216,0.10);transition:box-shadow .15s"><span style="font-size:18px;flex-shrink:0;padding-top:1px;cursor:grab;color:#93C5FD;user-select:none" title="Arrastrar para reordenar">⠿</span><div style="flex:1;min-width:0">'+dashRowInner(p)+'</div></div>';});
     h+='</div></div>';
   }
-  if(focos.length)h+='<div class="cd"><div class="ch"><span class="ctl" style="color:var(--foco-tx)">🔥 Modo Foco</span></div><div style="padding:.5rem 1.25rem">'+focos.map(dashRow).join('')+'</div></div>';
+  h+='<div class="cd"><div class="ch"><span class="ctl" style="color:var(--foco-tx)">🔥 Causas en foco</span><span style="font-size:12px;color:var(--muted)">'+focos.length+'</span></div><div style="padding:.5rem 1.25rem">'+(focos.length?focos.map(focoRow).join(''):'<div style="color:var(--muted);font-size:13px;padding:.25rem 0">Sin causas en foco. Actívelo con un clic desde Prioridad activa.</div>')+'</div></div>';
   if(cr.length)h+='<div class="cd"><div class="ch"><span class="ctl" style="color:var(--red)">🚨 Urgencia critica</span></div><div style="padding:.5rem 1.25rem">'+cr.slice(0,8).map(dashRow).join('')+'</div></div>';
   if(sinPA.length)h+='<div class="cd"><div class="ch"><span class="ctl" style="color:#DC2626">⚠️ Sin proxima tarea</span></div><div style="padding:.5rem 1.25rem">'+sinPA.slice(0,6).map(dashRow).join('')+'</div></div>';
   if(!pinned.length&&!focos.length&&!cr.length&&!sinPA.length)h+='<div class="cd"><div style="padding:2.5rem;text-align:center"><div style="font-size:40px">✓</div><div style="color:var(--green);font-weight:600;font-size:16px;margin-top:10px">Todo bajo control</div></div></div>';
@@ -1082,6 +1082,7 @@ function syncManual(){
       if(CU){pinRestore();actualizarBadge();mostrarBanner();if(CS==='reportes'){/* preservar preview */}else if(CS==='proc'){if(document.getElementById('procLista'))rProcLista();else rProc();}else if(CS==='agenda'){if(document.getElementById('ag-lista'))renderAgLista();else rAgenda();}else if(CS==='procuracion'){if(document.getElementById('proc-lista'))renderProcLista();else rProcuracion();}else{var fns={dash:rDash,venc:rVenc,interv:rInterv,arch:rArch,alertas:rAlertas,lorenzo:rLorenzoCurrent,finanzas:rFinanzas};if(fns[CS])fns[CS]();}
         if(!_alertaCriticaMostrada)mostrarAlertaCriticaCheck();
         chequearAlertasCuotasCheck();
+        if(!_alertaFocosMostrada){_alertaFocosMostrada=true;chequearFocosSinTarea();}
         if(CS==='papelera')rPapelera();}
     });
   }
@@ -1112,18 +1113,10 @@ function syncManual(){
 function pinMover(id,dir){var todos2=procVisibles().filter(function(p){return p.pin;});var ordenados=todos2.slice().sort(function(a,b){var oa=DB.pinOrder.indexOf(a.id),ob=DB.pinOrder.indexOf(b.id);if(oa<0)oa=999;if(ob<0)ob=999;return oa-ob;});var ids=ordenados.map(function(p){return p.id;});var idx=ids.indexOf(id);if(idx<0)return;var nuevo=idx+dir;if(nuevo<0||nuevo>=ids.length)return;var tmp=ids[idx];ids[idx]=ids[nuevo];ids[nuevo]=tmp;DB.pinOrder=ids;sv();rDash();}
 function dashRowInner(p){
   var iv=p._i||calcIUO(p);var dias=dD(p.um||p.fi);
-  var dBadge=p.pin?'<span class="db" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE">📌 Prioridad activa</span>':p.foco?'<span class="db" style="background:var(--foco-bg);color:var(--foco-tx);border:1px solid var(--foco-bd)">🔥 Foco</span>':iv==='P'?'<span class="db dg">Programada</span>':(!p.um&&!p.fi?'<span class="db dp">Sin registro</span>':'<span class="db '+dClass(dias)+'">'+dias+'d</span>');
+  var dBadge=p.pin?'<span class="db" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE">📌 Prioridad activa</span>':iv==='P'?'<span class="db dg">Programada</span>':(!p.um&&!p.fi?'<span class="db dp">Sin registro</span>':'<span class="db '+dClass(dias)+'">'+dias+'d</span>');
+  var focoBtn=p.foco?'<button class="btn bf bsm" onclick="toggleFoco(\''+p.id+'\')" title="Quitar foco" style="font-size:10px;padding:1px 7px">🔥 En foco</button>':'<button class="btn bs bsm" onclick="toggleFoco(\''+p.id+'\')" title="Activar foco" style="font-size:10px;padding:1px 7px">🔥 Foco</button>';
   var pt=textoPA(p);
-  return'<div class="ci"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="cn" onclick="aP(\''+p.id+'\')" data-tip="Abrir expediente">'+p.ca+'</div></div><div class="cm">'+(p.re||'-')+' · '+dBadge+'<div style="font-size:12px;color:'+(pt?'#166534':'var(--red)')+';margin-top:4px;line-height:1.5">'+(pt?pt:'⚠ Sin proxima tarea')+'</div></div></div><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span>';
-}
-function dashRow(p){
-  var iv=p._i||calcIUO(p);var u=UMBRALES[p.pr||'media']||UMBRALES.media;var dias=dD(p.um||p.fi);
-  var pct=iv==='P'?100:iv==='S'?50:Math.max(0,Math.round((1-dias/u.critico)*100));
-  var col=iv==='C'?'var(--red)':iv==='A'?'var(--amber)':iv==='P'?'#16a34a':'var(--green)';
-  if(p.pin)col='#1D4ED8';if(p.foco)col='var(--foco-bd)';
-  var dBadge=p.pin?'<span class="db" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE">📌 Prioridad activa</span>':p.foco?'<span class="db" style="background:var(--foco-bg);color:var(--foco-tx);border:1px solid var(--foco-bd)">🔥 Foco</span>':iv==='P'?'<span class="db dg">Programada</span>':(!p.um&&!p.fi?'<span class="db dp">Sin registro</span>':'<span class="db '+dClass(dias)+'">'+dias+'d</span>');
-  var pt=textoPA(p);
-  return'<div class="cr2"><div class="ck'+(p.pin?' dn':'')+'" onclick="togglePin(\''+p.id+'\')">'+(p.pin?'📌':'')+'</div><div class="ci"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="cn" onclick="aP(\''+p.id+'\')">'+p.ca+'</div>'+(!p.pin&&!p.foco?'<button class="btn bf bsm" onclick="oFoco(\''+p.id+'\')" style="padding:2px 8px;font-size:11px">🔥</button>':'')+'</div><div class="cm">'+(p.re||'-')+' · '+dBadge+'<div style="font-size:12px;color:'+(pt?'#166534':'var(--red)')+';margin-top:4px;line-height:1.5">'+(pt?pt:'⚠ Sin proxima tarea')+'</div></div><div class="cbar"><div class="cfil" style="width:'+pct+'%;background:'+col+'"></div></div></div><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span></div>';
+  return'<div class="ci"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="cn" onclick="aP(\''+p.id+'\')" data-tip="Abrir expediente">'+p.ca+'</div>'+focoBtn+'</div><div class="cm">'+(p.re||'-')+' · '+dBadge+'<div style="font-size:12px;color:'+(pt?'#166534':'var(--red)')+';margin-top:4px;line-height:1.5">'+(pt?pt:'⚠ Sin proxima tarea')+'</div></div></div><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span>';
 }
 function marcarTrabajada(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;if(!confirm('Marcar como trabajada hoy?'))return;p.um=hoy();sv();mostrarBanner();actualizarBadge();rDash();}
 function initDragModal(mdEl){if(!mdEl)return;var mhEl=mdEl.querySelector('.mh');if(!mhEl)return;mhEl.style.cursor='grab';var ox=0,oy=0,mx=0,my=0;function mdown(e){if(e.target.tagName==='BUTTON'||e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;mx=e.clientX;my=e.clientY;var s=window.getComputedStyle(mdEl.parentElement);var t=parseInt(s.top)||0,l=parseInt(s.left)||0;ox=mx-l;oy=my-t;var mb=mdEl.parentElement;mb.style.alignItems='flex-start';mb.style.justifyContent='flex-start';document.addEventListener('mousemove',mmove);document.addEventListener('mouseup',mup);}function mmove(e){var l=e.clientX-ox,t=e.clientY-oy;var mb=mdEl.parentElement;mb.style.paddingTop=Math.max(0,t)+'px';mb.style.paddingLeft=Math.max(0,l)+'px';}function mup(){document.removeEventListener('mousemove',mmove);document.removeEventListener('mouseup',mup);}mhEl.addEventListener('mousedown',mdown);}
@@ -1138,13 +1131,50 @@ function dashRow(p){
   var tareaStr='';
   if((iv==='C'||iv==='A')&&p.proximaTarea){var dv=p.fechaTarea?Math.max(0,dFT(p.fechaTarea)*-1):0;tareaStr='<div style="font-size:12px;color:#7C3AED;font-style:italic;margin-top:3px">&#8220;'+esc(p.proximaTarea)+'&#8221;</div>';if(dv>0)tareaStr+='<div style="font-size:11px;color:var(--red)">'+dv+' dias vencida</div>';}
   var btnTrab=(iv==='C'||iv==='A')?'<button class="btn btrab bsm" onclick="marcarTrabajada(\''+p.id+'\')" style="margin-top:5px;font-size:11px">✅ Trabajada</button>':'';
-  return'<div class="cr2"><div class="ck'+(p.pin?' dn':'')+'" onclick="togglePin(\''+p.id+'\')">'+(p.pin?'📌':'')+'</div><div class="ci"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="cn" onclick="aP(\''+p.id+'\')">'+p.ca+'</div>'+(!p.pin&&!p.foco?'<button class="btn bf bsm" onclick="oFoco(\''+p.id+'\')" style="padding:2px 8px;font-size:11px">🔥</button>':'')+'</div><div class="cm">'+(p.re||'-')+' · '+dBadge+(pt&&!tareaStr?'<div style="font-size:11px;color:var(--green);margin-top:2px">↳ '+pt.substr(0,55)+'</div>':!pt?'<div style="font-size:11px;color:var(--red);margin-top:2px">⚠ Sin proxima tarea</div>':'')+tareaStr+btnTrab+'</div><div class="cbar"><div class="cfil" style="width:'+pct+'%;background:'+col+'"></div></div></div><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span></div>';
+  return'<div class="cr2"><div class="ck'+(p.pin?' dn':'')+'" onclick="togglePin(\''+p.id+'\')">'+(p.pin?'📌':'')+'</div><div class="ci"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="cn" onclick="aP(\''+p.id+'\')">'+p.ca+'</div>'+(p.pin&&!p.foco?'<button class="btn bf bsm" onclick="toggleFoco(\''+p.id+'\')" style="padding:2px 8px;font-size:11px">🔥</button>':'')+'</div><div class="cm">'+(p.re||'-')+' · '+dBadge+(pt&&!tareaStr?'<div style="font-size:11px;color:var(--green);margin-top:2px">↳ '+pt.substr(0,55)+'</div>':!pt?'<div style="font-size:11px;color:var(--red);margin-top:2px">⚠ Sin proxima tarea</div>':'')+tareaStr+btnTrab+'</div><div class="cbar"><div class="cfil" style="width:'+pct+'%;background:'+col+'"></div></div></div><span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span></div>';
 }
 function marcarTrabajada(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;if(!confirm('Marcar como trabajada hoy? Se limpiara la tarea programada.'))return;p.um=hoy();p.proximaTarea='';p.fechaTarea='';sv();mostrarBanner();actualizarBadge();rDash();}
-function togglePin(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;p.pin=!p.pin;sv();pinSave();if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();mostrarBanner();actualizarBadge();}
-function oFoco(id){var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;document.getElementById('mFI').innerHTML='<div class="mh"><div class="mt2">🔥 Activar Modo Foco</div><button class="bi" onclick="cM(\'mF\')">✕</button></div><div style="background:var(--foco-bg);border:1px solid var(--foco-bd);border-radius:8px;padding:12px;margin-bottom:1rem"><div style="font-weight:600;color:var(--foco-tx)">'+p.ca+'</div></div><div class="fg"><label class="fl req">Motivo del foco</label><textarea class="fc" id="foco-mot" rows="3"></textarea></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1rem"><button class="btn bs" onclick="cM(\'mF\')">Cancelar</button><button class="btn bf" onclick="activarFoco(\''+id+'\')">🔥 Activar Foco</button></div>';document.getElementById('mF').classList.add('open');}
-function activarFoco(id){var mot=document.getElementById('foco-mot').value.trim();if(!mot){alert('El motivo es obligatorio');return}var p=DB.procesos.find(function(x){return x.id===id;});if(p){p.foco=true;p.focoMotivo=mot;p.focoFecha=hoy();sv();pinSave();}cM('mF');if(CS==='dash')rDash();else rProcLista();mostrarBanner();actualizarBadge();}
-function desactivarFoco(id){if(!confirm('Desactivar el Modo Foco?'))return;var p=DB.procesos.find(function(x){return x.id===id;});if(p){p.foco=false;delete p.focoMotivo;delete p.focoFecha;sv();pinSave();}if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();mostrarBanner();actualizarBadge();}
+function togglePin(id){
+  var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;
+  if(p.pin&&p.foco){
+    if(!confirm('Esta causa tiene el Foco activado.\n\nSi la saca de Prioridad activa, tambien se le va a quitar el Foco.\n\n¿Continuar?'))return;
+    p.foco=false;delete p.focoMotivo;delete p.focoFecha;
+  }
+  p.pin=!p.pin;sv();pinSave();if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();mostrarBanner();actualizarBadge();
+}
+// Etapa 4.1 — Foco: siempre un subconjunto de Prioridad activa (pins). Alta/baja con un solo clic.
+function tieneTareaVencida(p){return agendaExpandida().some(function(a){return a.pid===p.id&&!a.he&&a.f<hoy();});}
+function toggleFoco(id){
+  var p=DB.procesos.find(function(x){return x.id===id;});if(!p)return;
+  if(!p.foco){
+    if(!p.pin){alert('Para activar el Foco, la causa primero debe estar en Prioridad activa.');return;}
+    p.foco=true;p.focoFecha=hoy();
+  }else{
+    p.foco=false;delete p.focoMotivo;delete p.focoFecha;
+  }
+  sv();pinSave();
+  if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();
+  mostrarBanner();actualizarBadge();
+}
+function editarMotivoFoco(id){
+  var p=DB.procesos.find(function(x){return x.id===id;});if(!p||!p.foco)return;
+  var mot=prompt('Motivo del foco (opcional):',p.focoMotivo||'');
+  if(mot===null)return;
+  p.focoMotivo=mot.trim();sv();pinSave();
+  if(CS==='dash')rDash();else if(CS==='proc')rProcLista();else if(CS==='alertas')rAlertas();
+}
+function focoRow(p){
+  var pt=textoPA(p);
+  var vencidaMark=tieneTareaVencida(p)?'<span style="color:var(--red);font-weight:700;font-size:11px;margin-left:6px">⚠ Tarea vencida</span>':'';
+  var motivo=p.focoMotivo?'<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:3px">Motivo: '+esc(p.focoMotivo)+'</div>':'';
+  return'<div style="display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid #f0f0f0;padding:8px 0"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;flex-wrap:wrap"><span class="cn" style="cursor:pointer" onclick="aP(\''+p.id+'\')">'+esc(p.ca)+'</span>'+vencidaMark+'</div><div style="font-size:12px;color:var(--muted);margin-top:2px">'+(p.re||'-')+'</div><div style="font-size:12px;margin-top:3px;color:'+(pt?'#166534':'var(--red)')+'">'+(pt?'↳ '+esc(pt):'⚠ Sin proxima tarea')+'</div>'+motivo+'</div><div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0"><button class="btn bf bsm" onclick="toggleFoco(\''+p.id+'\')" title="Quitar foco" style="font-size:11px">🔥 Quitar</button><button class="bi" onclick="editarMotivoFoco(\''+p.id+'\')" title="Editar motivo">✏️</button></div></div>';
+}
+function chequearFocosSinTarea(){
+  if(!CU)return;
+  var sinTarea=DB.procesos.filter(function(p){return p.foco&&p.pin&&!tienePA(p)&&!p.ar&&!p.eliminada;});
+  if(!sinTarea.length)return;
+  alert('🔥 Causas en foco sin proxima tarea:\n\n'+sinTarea.map(function(p){return'• '+p.ca;}).join('\n'));
+}
 function rProc(){fR2='';fT2='';fB2='';fP2='';fI2='';
   var h='<div class="fb"><select onchange="fI2=this.value;rProcLista()"><option value="">Todos los estados</option><option value="P">🗓️ Programada</option><option value="C">Urgencia critica</option><option value="A">Urgencia alerta</option><option value="O">Al dia</option></select>';
   h+='<select id="filtResp" onchange="fR2=this.value;rProcLista()"><option value="">Todos los responsables</option>'+RESPONSABLES.map(function(r){return'<option value="'+r+'"'+(fR2===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select>';
@@ -1256,8 +1286,9 @@ function vProc(p){
   var nVc=DB.vencimientos.filter(function(vx){return vx.pid===p.id&&!vx.r;}).length;
   var tPA=tienePA(p);var pt=textoPA(p);
   var h='<div class="mh"><div style="flex:1;min-width:0"><div class="mt2" style="word-break:break-word">'+p.ca+'</div><div style="font-size:12px;color:var(--muted);margin-top:3px">'+(p.ti||'')+(p.ex?' · '+p.ex:'')+(p.ju?' · '+p.ju:'')+'</div></div><div style="display:flex;gap:8px;align-items:center;flex-shrink:0;margin-left:12px">'+iuoEl(iv,p.foco,p.pin)+'<span class="pr '+pC(p.pr)+'">'+pL(p.pr)+'</span><button class="btn bs bsm" onclick="cM(\'mP\');document.getElementById(\'mPI\').innerHTML=fProc(DB.procesos.find(function(x){return x.id===\''+p.id+'\'}));document.getElementById(\'mP\').classList.add(\'open\')">Editar</button><button class="bi" onclick="cM(\'mP\')">✕</button></div></div>';
-  if(p.foco)h+='<div class="foco-banner"><div style="font-size:24px;flex-shrink:0">🔥</div><div style="flex:1"><div style="font-weight:700;color:var(--foco-tx);font-size:12px;margin-bottom:3px">MODO FOCO ACTIVO</div><div style="font-size:13px;color:#9A3412">'+(p.focoMotivo||'Sin motivo')+'</div></div><button class="btn bf bsm" onclick="desactivarFoco(\''+p.id+'\')">Desactivar</button></div>';
-  else h+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><button class="btn bf bsm" onclick="cM(\'mP\');oFoco(\''+p.id+'\')">🔥 Activar Modo Foco</button></div>';
+  if(p.foco)h+='<div class="foco-banner"><div style="font-size:24px;flex-shrink:0">🔥</div><div style="flex:1"><div style="font-weight:700;color:var(--foco-tx);font-size:12px;margin-bottom:3px">EN FOCO</div><div style="font-size:13px;color:#9A3412">'+(p.focoMotivo||'Sin motivo')+' <span style="cursor:pointer;text-decoration:underline" onclick="editarMotivoFoco(\''+p.id+'\')">(editar)</span></div></div><button class="btn bf bsm" onclick="toggleFoco(\''+p.id+'\')">Quitar foco</button></div>';
+  else if(p.pin)h+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><button class="btn bf bsm" onclick="toggleFoco(\''+p.id+'\')">🔥 Activar Foco</button></div>';
+  else h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Para activar el Foco, ancle primero esta causa a Prioridad activa desde el listado de Procesos activos.</div>';
   h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:#F8FAFF;border:1px solid #BFDBFE;border-radius:8px">';
   h+='<div style="font-size:12px;font-weight:600;color:#1D4ED8;margin-right:4px">📌 Prioridad activa:</div>';
   if(p.pin){h+='<span class="ipin">📌 Activa</span><button class="btn bs bsm" onclick="togglePinProc(\''+p.id+'\')">Desactivar</button>';}
@@ -1469,7 +1500,7 @@ function consultarArchivada(id){var p=DB.procesos.find(function(x){return x.id==
 function reP(id){var p=DB.procesos.find(function(x){return x.id===id;});if(p){p.ar=false;delete p.fa;sv();}rArch();}
 function rAlertas(){
   var todos=procVisibles();todos.forEach(function(p){p._i=calcIUO(p);});
-  var pinned=todos.filter(function(p){return p.pin;});var focos=todos.filter(function(p){return p.foco&&!p.pin;});
+  var pinned=todos.filter(function(p){return p.pin;});var focos=todos.filter(function(p){return p.foco&&p.pin;});
   var prog=todos.filter(function(p){return p._i==='P'&&!p.pin&&!p.foco;});
   var sinPA=todos.filter(function(p){return!tienePA(p)&&!p.pin&&!p.foco;});var cr=todos.filter(function(p){return p._i==='C'&&!p.pin&&!p.foco;});
   var h='<div class="sg sg4" style="margin-bottom:1.25rem"><div class="sc pin"><div class="sn">'+pinned.length+'</div><div class="sl">Prioridad activa</div></div><div class="sc foco"><div class="sn">'+focos.length+'</div><div class="sl">Modo Foco</div></div><div class="sc prog"><div class="sn">'+prog.length+'</div><div class="sl">Programadas</div></div><div class="sc crit"><div class="sn">'+cr.length+'</div><div class="sl">Urgencia critica</div></div></div>';
